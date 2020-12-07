@@ -1,15 +1,16 @@
 package main
 
-import(
-	"fmt"
-	"tdfs"
+import (
 	"flag"
+	"fmt"
+
+	"github.com/luc/tdfs"
 	// "runtime"
 	// "sync"
 )
 
 func main() {
-	
+
 	/* 需要将文件放到$GOPATH下 */
 	// go run TinyDFS/Client.go -putfile "SmallFile.txt"
 	// go run TinyDFS/Client.go -getfile "SmallFile"
@@ -31,18 +32,18 @@ func main() {
 	filenameOfDel := flag.String("delfile", "unknow", "the filename of the file you want to del")
 
 	flag.Parse()
-	
-	if *filenameOfPut!="unknow" {
+
+	if *filenameOfPut != "unknow" {
 		client.PutFile(*filenameOfPut)
 		fmt.Println(" -PutFile for ", *filenameOfPut)
 	}
-	
-	if *filenameOfGet!="unknow" {
+
+	if *filenameOfGet != "unknow" {
 		client.GetFile(*filenameOfGet)
 		fmt.Println(" -Getfile for ", *filenameOfGet)
 	}
 
-	if *filenameOfDel!="unknow" {
+	if *filenameOfDel != "unknow" {
 		client.DelFile(*filenameOfDel)
 		fmt.Println(" -Delfile for ", *filenameOfDel)
 	}

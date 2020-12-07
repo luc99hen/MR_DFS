@@ -1,8 +1,8 @@
 package main
 
-import(
+import (
 	// "fmt"
-	"tdfs"
+	"github.com/luc/tdfs"
 	// "runtime"
 	// "sync"
 )
@@ -14,7 +14,7 @@ const DN3_CAPACITY int = 100
 func main() {
 	var dn3 tdfs.DataNode
 	dn3.DATANODE_DIR = DN3_DIR
-	
+
 	dn3.Reset()
 	dn3.SetConfig(DN3_LOCATION, DN3_CAPACITY)
 
