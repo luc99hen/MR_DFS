@@ -1,0 +1,32 @@
+version: "0.1"
+
+services:
+  datanode1:
+    image: go-test:latest
+    command: sh -c "go run /dfs/DN1.go"
+    ports:
+      - 11091:11091
+    expose:
+      - 11091
+    volumes:
+      - ./TinyDFS:/dfs/TinyDFS
+
+  datanode2:
+    image: go-test:latest
+    command: sh -c "go run /dfs/DN2.go"
+    ports:
+      - 11092:11092
+    expose:
+      - 11092
+    volumes:
+      - ./TinyDFS:/dfs/TinyDFS
+  
+  datanode3:
+    image: go-test:latest
+    command: sh -c "go run /dfs/DN3.go"
+    ports:
+      - 11093:11093
+    expose:
+      - 11093
+    volumes:
+      - ./TinyDFS:/dfs/TinyDFS

@@ -26,7 +26,7 @@ func (namenode *NameNode) Run() {
 	router.POST("/putfile", func(c *gin.Context) {
 		// name := c.PostForm("name")
 		// fmt.Println(name)
-		filename := namenode.recvFrom(c) //
+		filename := namenode.recvFrom(c)
 		fname := strings.Split(filename, ".")
 		fmt.Println("putfile ...", fname)
 		fmt.Println(fname)
@@ -44,7 +44,7 @@ func (namenode *NameNode) Run() {
 			}
 		}
 
-		chunkLen, offsetLast := splitToFileAndStore(filename, namenode.NAMENODE_DIR+"/"+fname[0]+"/chunk-")
+		chunkLen, offsetLast := splitToFileAndStore(namenode.NAMENODE_DIR+"/"+filename, namenode.NAMENODE_DIR+"/"+fname[0]+"/chunk-")
 
 		var f File
 		f.Info = "{name:" + fname[0] + "}"
@@ -350,24 +350,31 @@ func (namenode *NameNode) recvFrom(c *gin.Context) string {
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 		return "null"
 	}
-	filename := header.Filename
 
+	tmp := strings.Split(header.Filename, "/") // in case a full path passed
+	filename := tmp[len(tmp)-1]
 	fmt.Println()
 	fmt.Println(file, err, filename)
 	fmt.Println()
 
-	out, err := os.Create(namenode.NAMENODE_DIR + "/" + filename) //在服务器本地新建文件进行存储
+	out, err := os.Create(namenode.NAMENODE_DIR + "/" + filename)
 	if err != nil {
 		c.String(http.StatusBadRequest, "NameNode error at Create file")
 		fmt.Println("XXX NameNode error at Create", err.Error())
 		TDFSLogger.Fatal("XXX NameNode error: ", err)
 		return "null"
 	}
+	defer out.Close()
 
-	io.Copy(out, file) //在服务器本地新建文件进行存储
+	_, err = io.Copy(out, file) //transfer file from networkr to local
+	if err != nil {
+		c.String(http.StatusBadRequest, "NameNode error at Copy file")
+		fmt.Println("XXX NameNode error at Copy", err.Error())
+		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		return "null"
+	}
+
 	c.String(http.StatusCreated, "PutFile SUCCESS\n")
-	out.Close() //defer
-
 	return filename
 }
 

@@ -153,8 +153,8 @@ func (client *Client) SetConfig(nnaddr string) {
 func RequestInfo(fileName string, fileBytes int) []ReplicaLocation {
 	/* POST and Wait */
 	replicaLocationList := []ReplicaLocation{
-		ReplicaLocation{"http://localhost:11091", 3},
-		ReplicaLocation{"http://localhost:11092", 5},
+		{"http://localhost:11091", 3},
+		{"http://localhost:11092", 5},
 	}
 	return replicaLocationList
 }
