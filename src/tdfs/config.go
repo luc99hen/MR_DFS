@@ -11,12 +11,12 @@ const CHUNKTOTAL int = 100
 // Replica 表示文件块副本，是实际存储的
 /** Data Structure **/
 type ChunkUnit []byte // SPLIT_UNIT
-// type ChunkReplicaOfFile map[int]FileChunk
 
-// type FileChunk struct{
-// 	Filename string
-// 	ChunkNum int
-// }
+// declared for return value type for namenode /getReplicaLocations
+type ResFile struct {
+	File  File `json:"File"`
+	Exist bool `json:"exist"`
+}
 
 ////// File to Chunk
 type NameSpaceStruct map[string]File

@@ -153,6 +153,22 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
+// CheckPath checks if path exist, if not create a new one
+func CheckPath(path string) {
+	exist, err := PathExists(path)
+	if err != nil {
+		fmt.Println("XXX Utils error at PathExist in CheckPath() ", err.Error())
+		TDFSLogger.Fatal("XXX Utils error: ", err)
+	}
+	if !exist {
+		err = os.MkdirAll(path, os.ModePerm)
+		if err != nil {
+			fmt.Println("XXX Utils error at MkdirAll in CheckPath() ", err.Error())
+			TDFSLogger.Fatal("XXX Utils error: ", err)
+		}
+	}
+}
+
 func SplitToChunksByName(fPath string) (chunklist []ChunkUnit, offsetLast int, fileLen int) {
 	data := readFileByBytes(fPath)
 	var i int = 0

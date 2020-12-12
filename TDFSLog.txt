@@ -1,2 +1,3 @@
 TDFS Log: 2020/12/12 13:30:11 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused
 TDFS Log: 2020/12/12 13:30:27 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused
+TDFS Log: 2020/12/12 15:58:29 client.go:179: XXX Client error: fileName already in namespace
