@@ -2,23 +2,26 @@ package tdfs
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
 )
 
 // PutFile :upload local files from client to DFS
-func (client *Client) PutFile(fPath string) {
-	fmt.Println("****************************************")
-	fmt.Printf("*** Putting ${GOPATH}/%s to TDFS [NameNode: %s] )\n", fPath, client.NameNodeAddr) //  as %s , fName
+// func (client *Client) PutFile(fPath string) {
+// 	fmt.Println("****************************************")
+// 	fmt.Printf("*** Putting ${GOPATH}/%s to TDFS [NameNode: %s] )\n", fPath, client.NameNodeAddr) //  as %s , fName
 
-	client.uploadFileByMultipart(fPath)
+// 	client.uploadFileByMultipart(fPath)
 
-	fmt.Println("****************************************")
-}
+// 	fmt.Println("****************************************")
+// }
 
 // GetFile :download file from DFS
 func (client *Client) GetFile(fName string) { //, fName string
@@ -99,10 +102,114 @@ func (client *Client) DelFile(fName string) {
 }
 
 func (client *Client) Test() {
-	_, err := http.Get(client.NameNodeAddr + "/test")
-	if err != nil {
-		fmt.Println("Client error at Get test", err.Error())
+	// _, err := http.Get(client.NameNodeAddr + "/test")
+	// if err != nil {
+	// 	fmt.Println("Client error at Get test", err.Error())
+	// }
+	// client.PutFile("./data/AFile.txt")
+}
+
+// PutFile upload local files from client to DFS
+func (client *Client) PutFile(fPath string) {
+
+	chunklist, offsetLast, fileLen := SplitToChunksByName(fPath)
+
+	fileName := path2Name(fPath)
+	fileChunks := client.getReplicaLocations(fileName, fileLen, offsetLast)
+	for i, replicaLocationList := range fileChunks {
+		PutChunk(fileName, i, chunklist[i], replicaLocationList)
 	}
+}
+
+// PutChunk push chunks (from the original file) to replicaLocations (get from namenode)
+func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocationList [REDUNDANCE]ReplicaLocation) {
+	replicaLen := len(replicaLocationList)
+
+	for i := 0; i < replicaLen; i++ {
+		fmt.Printf("* Putting [Chunk %d] to TDFS [DataNode: %s] at [Replica-%d].\n",
+			chunkIndex, replicaLocationList[0].ServerLocation, replicaLocationList[0].ReplicaNum) //  as %s , fName
+
+		/** Create form file **/
+		buf := new(bytes.Buffer)
+		writer := multipart.NewWriter(buf)
+		formFile, err := writer.CreateFormFile("putchunk", fileName)
+		if err != nil {
+			fmt.Println("XXX NameNode error at Create form file", err.Error())
+			TDFSLogger.Fatal("XXX NameNode error: ", err)
+		}
+
+		// fmt.Println("*** Open source file OK ")
+
+		/** Write to form file **/
+		_, err = io.Copy(formFile, bytes.NewReader(chunkBytes))
+		if err != nil {
+			fmt.Println("XXX NameNode error at Write to form file", err.Error())
+			TDFSLogger.Fatal("XXX NameNode error: ", err)
+		}
+
+		// fmt.Println("*** Write to form file OK ")
+
+		/** Set Params Before Post **/
+		params := map[string]string{
+			"ReplicaNum": strconv.Itoa(replicaLocationList[i].ReplicaNum), //chunkNum
+		}
+		for key, val := range params {
+			err = writer.WriteField(key, val)
+			if err != nil {
+				fmt.Println("XXX NameNode error at Set Params", err.Error())
+				TDFSLogger.Fatal("XXX NameNode error: ", err)
+			}
+		}
+		contentType := writer.FormDataContentType()
+		writer.Close() // 发送之前必须调用Close()以写入结尾行
+
+		// fmt.Println("*** Set Params OK ")
+
+		/** Post form file **/
+		res, err := http.Post(replicaLocationList[i].ServerLocation+"/putchunk",
+			contentType, buf) // /"+strconv.Itoa(chunkNum)
+		if err != nil {
+			fmt.Println("XXX NameNode error at Post form file", err.Error())
+			TDFSLogger.Fatal("XXX NameNode error: ", err)
+		}
+		defer res.Body.Close()
+
+		fmt.Println("** Post form file OK ")
+
+		/** Read response **/
+		response, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			fmt.Println("XXX NameNode error at Read response", err.Error())
+			TDFSLogger.Fatal("XXX NameNode error: ", err)
+		}
+		fmt.Print("*** DataNoed Response: ", string(response))
+	}
+}
+
+// getReplicaLocations asks the namenode for the replicaLocation of all the chunks
+func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetLast int) []FileChunk {
+	data := url.Values{
+		"fileName":   {fileName},
+		"fileSize":   {strconv.Itoa(fileSize)},
+		"offsetLast": {strconv.Itoa(offsetLast)},
+	}
+
+	response, err := http.PostForm(client.NameNodeAddr+"/getReplicaLocations", data)
+	if err != nil {
+		fmt.Println("XXX Client error at Get replication location of ", client.NameNodeAddr, ": ", err.Error())
+		TDFSLogger.Fatal("XXX Client error: ", err)
+	}
+	defer response.Body.Close()
+
+	var f File
+	err = json.NewDecoder(response.Body).Decode(&f)
+	if err != nil {
+		fmt.Println("XXX Client error at decode response to json.", err.Error())
+		TDFSLogger.Fatal("XXX Client error: ", err)
+	}
+
+	return f.Chunks
+
 }
 
 func (client *Client) uploadFileByMultipart(fPath string) {

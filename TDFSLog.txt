@@ -1,15 +1,2 @@
-TDFS Log: 2020/12/09 22:26:22 namenode.go:319: XXX NameNode error: Get http://localhost:11091/getmeta: dial tcp 127.0.0.1:11091: connect: connection refused
-TDFS Log: 2020/12/10 16:09:01 namenode.go:319: XXX NameNode error: Get http://localhost:11093/getmeta: dial tcp 127.0.0.1:11093: connect: connection refused
-TDFS Log: 2020/12/10 16:14:40 utils.go:131: XXX Utils error at readFileByBytes(open): open AFile.txt: no such file or directory
-TDFS Log: 2020/12/10 16:31:04 utils.go:131: XXX Utils error at readFileByBytes(open): open AFile.txt: no such file or directory
-TDFS Log: 2020/12/10 16:34:57 utils.go:131: XXX Utils error at readFileByBytes(open): open AFile.txt: no such file or directory
-TDFS Log: 2020/12/11 10:48:20 namenode.go:363: XXX NameNode error: open TinyDFS/NameNode/./data/AFile.txt: no such file or directory
-TDFS Log: 2020/12/11 10:48:20 client.go:135: XXX Client error at Post form filePost http://localhost:11090/putfile: EOF
-TDFS Log: 2020/12/11 10:50:41 namenode.go:363: XXX NameNode error: open TinyDFS/NameNode/./data/BFile.txt: no such file or directory
-TDFS Log: 2020/12/11 10:50:41 client.go:135: XXX Client error at Post form filePost http://localhost:11090/putfile: EOF
-TDFS Log: 2020/12/11 10:53:31 namenode.go:363: XXX NameNode error: open TinyDFS/NameNode/data/BFile.txt: no such file or directory
-TDFS Log: 2020/12/11 10:53:31 client.go:135: XXX Client error at Post form filePost http://localhost:11090/putfile: EOF
-TDFS Log: 2020/12/11 11:03:59 client.go:135: XXX Client error at Post form filePost http://localhost:11090/putfile: EOF
-TDFS Log: 2020/12/11 15:24:35 namenode.go:170: XXX NameNode error: Get http://localhost:11091/getchunkhash/0: read tcp 127.0.0.1:54284->127.0.0.1:11091: read: connection reset by peer
-TDFS Log: 2020/12/11 15:24:35 client.go:31: XXX Client error at Get fileGet http://localhost:11090/getfile/BFile: EOF
-TDFS Log: 2020/12/11 15:27:44 client.go:31: XXX Client error at Get fileGet http://localhost:11090/getfile/BFile: dial tcp 127.0.0.1:11090: connect: connection refused
+TDFS Log: 2020/12/12 13:30:11 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused
+TDFS Log: 2020/12/12 13:30:27 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused

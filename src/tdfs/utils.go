@@ -1,11 +1,14 @@
 package tdfs
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func splitToFileAndStore(fileName string, storeFile string) (chunkLen int, offsetLast int) {
@@ -124,6 +127,7 @@ func readFileLimitedBytes(fileName string, limit int64) {
 	fmt.Println()
 }
 
+// readFileByBytes parse the file by fileName to bytes
 func readFileByBytes(fileName string) []byte {
 	file, err := os.Open(fileName)
 	if err != nil {
@@ -135,10 +139,6 @@ func readFileByBytes(fileName string) []byte {
 		fmt.Println("XXX Utils error at readFileByBytes(ReadAll): ", err.Error())
 		TDFSLogger.Fatal("XXX Utils error at readFileByBytes(ReadAll): ", err)
 	}
-	// fmt.Printf("Data as hex: %x\n", data)
-	// fmt.Printf("Data as bytes: %b\n", data)
-	// fmt.Printf("Data as string: %s\n", data)
-	// fmt.Println("Number of bytes read:", len(data))
 	return data
 }
 
@@ -153,31 +153,34 @@ func PathExists(path string) (bool, error) {
 	return false, err
 }
 
-func SplitToChunksByName(bigFileName string) (chunklist []ChunkUnit, dataLen int) {
-	data := readFileByBytes(bigFileName)
+func SplitToChunksByName(fPath string) (chunklist []ChunkUnit, offsetLast int, fileLen int) {
+	data := readFileByBytes(fPath)
 	var i int = 0
-	dataLen = len(data)
-	// fmt.Printf("dataLen:%d\n",dataLen)
-	for i < len(data)/SPLIT_UNIT {
+	fileLen = len(data)
+	for i < fileLen/SPLIT_UNIT {
 		chunklist = append(chunklist, data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
 		i++
 	}
 	chunklist = append(chunklist, data[i*SPLIT_UNIT:])
-	return chunklist, dataLen
+	offsetLast = fileLen - i*SPLIT_UNIT
+	return chunklist, offsetLast, fileLen
 }
 
-func SplitToChunksByFobj(bigFile *os.File) (chunklist []ChunkUnit, dataLen int) {
-	data, err := ioutil.ReadAll(bigFile)
-	if err != nil {
-		fmt.Println("XXX Utils error at ReadAll", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at ReadAll", err)
+func path2Name(fPath string) (fileName string) {
+	tmp := strings.Split(fPath, "/") // in case a full path passed
+	return tmp[len(tmp)-1]
+}
+
+func getHash(bytes []byte) (hashStr string) {
+	hash := sha256.New()
+	hash.Write(bytes)
+	hashStr = hex.EncodeToString(hash.Sum(nil))
+	return hashStr
+}
+
+func getChunkLength(fileSize int) int {
+	if fileSize%SPLIT_UNIT == 0 {
+		return fileSize / SPLIT_UNIT
 	}
-	var i int = 0
-	dataLen = len(data)
-	for i < dataLen/SPLIT_UNIT {
-		chunklist[i] = data[i*SPLIT_UNIT : (i+1)*SPLIT_UNIT]
-		i++
-	}
-	chunklist[i] = data[i*SPLIT_UNIT:]
-	return chunklist, dataLen
+	return fileSize/SPLIT_UNIT + 1
 }

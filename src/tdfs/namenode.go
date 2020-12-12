@@ -5,12 +5,8 @@ import (
 	"fmt"
 	// "strconv"
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"io"
 	"io/ioutil"
-	"mime/multipart"
 	"net/http"
 	"os"
 	"strconv"
@@ -23,95 +19,53 @@ import (
 // -H "Content-Type: multipart/form-data"
 func (namenode *NameNode) Run() {
 	router := gin.Default()
-	router.POST("/putfile", func(c *gin.Context) {
-		// name := c.PostForm("name")
-		// fmt.Println(name)
-		filename := namenode.recvFrom(c)
-		fname := strings.Split(filename, ".")
-		fmt.Println("putfile ...", fname)
-		fmt.Println(fname)
 
-		exist, err := PathExists(namenode.NAMENODE_DIR + "/" + fname[0])
-		if err != nil {
-			fmt.Println("XXX NameNode error at Get Dir", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-		if !exist {
-			err = os.MkdirAll(namenode.NAMENODE_DIR+"/"+fname[0], os.ModePerm)
-			if err != nil {
-				fmt.Println("XXX NameNode error at MkdirAll", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
-			}
-		}
+	router.POST("/getReplicaLocations", func(c *gin.Context) {
 
-		chunkLen, offsetLast := splitToFileAndStore(namenode.NAMENODE_DIR+"/"+filename, namenode.NAMENODE_DIR+"/"+fname[0]+"/chunk-")
+		fileName := c.PostFormArray("fileName")[0]
+		fileSize := c.PostFormArray("fileSize")[0]
+		offsetLast := c.PostFormArray("offsetLast")[0]
 
-		var f File
-		f.Info = "{name:" + fname[0] + "}"
+		var file File
+		file.Info = "{name:" + fileName + "}"
+		file.Size, _ = strconv.Atoi(fileSize)
+		file.Offset_LastChunk, _ = strconv.Atoi(offsetLast)
 
-		for i := 0; i < chunkLen; i++ {
+		for i := 0; i < getChunkLength(file.Size); i++ {
 			replicaLocationList := namenode.AllocateChunk()
-			f.Chunks[i].ReplicaLocationList = replicaLocationList
-			PutChunk(namenode.NAMENODE_DIR+"/"+fname[0]+"/chunk-"+strconv.Itoa(i), i, replicaLocationList)
-		}
-		f.Offset_LastChunk = offsetLast
-		f.Length = offsetLast + chunkLen*SPLIT_UNIT
-		// namenode.NameSpace[fname[0]] = f
-		// fmt.Println("# - fname[0] = ", fname[0])
-
-		// m := NameSpaceStruct{}
-		ns := namenode.NameSpace
-		ns[fname[0]] = f
-		namenode.NameSpace = ns
-		fmt.Printf("# FILE %s produced: chunkLen=%d, offsetLast=%d\n", filename, chunkLen, offsetLast)
-		fmt.Println("## file.Info", ns[fname[0]].Info)
-		for k := 0; k < chunkLen; k++ {
-			fmt.Println("## file.Chunks[", k, "].Info", ns[fname[0]].Chunks[k].Info)
-			fmt.Println("## file.Chunks[", k, "].RLList", ns[fname[0]].Chunks[k].ReplicaLocationList)
-		}
-		fmt.Println("## file.Offset_LastChunk", ns[fname[0]].Offset_LastChunk)
-
-		// 把NN中暂存客户端发来的数据删去：
-		err = os.Remove(namenode.NAMENODE_DIR + "/" + filename)
-		if err != nil {
-			fmt.Println("XXX NameNode error at remove tempfiles", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			file.Chunks = append(file.Chunks, replicaLocationList)
 		}
 
-		for i := 0; i < chunkLen; i++ {
-			err = os.Remove(namenode.NAMENODE_DIR + "/" + fname[0] + "/chunk-" + strconv.Itoa(i))
-			if err != nil {
-				fmt.Println("XXX NameNode error at remove chunk-", i, err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
-			}
-		}
+		namenode.NameSpace[fileName] = file
+		fmt.Println("## replicaLocation allocated successfully", file)
+		c.JSON(http.StatusOK, file)
 
 	})
 
-	router.GET("/getfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
-		fmt.Println("$ getfile ...", filename)
-		file := namenode.NameSpace[filename]
+	router.GET("/getfile/:fileName", func(c *gin.Context) {
+		fileName := c.Param("fileName")
+		fmt.Println("$ getfile ...", fileName)
+		file := namenode.NameSpace[fileName]
 		// fmt.Println(file)
 		/* 从DN中读取file所在的块数据，将块数据暂存在一个文件夹下 */
-		for i := 0; i < file.Length/SPLIT_UNIT; i++ {
-			namenode.GetChunk(file, filename, i)
+		for i := 0; i < getChunkLength(file.Size); i++ {
+			namenode.GetChunk(file, fileName, i)
 		}
 		/* 将文件夹下的块数据整合成一个文件 */
 		// fdata := bytes.Join(filedata, nil)
-		fdata := namenode.AssembleFile(file, filename)
+		fdata := namenode.AssembleFile(file, fileName)
 		/* 将该文件发送给客户端 */
 		c.String(http.StatusOK, string(fdata))
 	})
 
 	// router.DELETE GET
-	router.DELETE("/delfile/:filename", func(c *gin.Context) {
-		filename := c.Param("filename")
-		file := namenode.NameSpace[filename]
-		for i := 0; i < file.Length/SPLIT_UNIT; i++ {
-			namenode.DelChunk(file, filename, i)
+	router.DELETE("/delfile/:fileName", func(c *gin.Context) {
+		fileName := c.Param("fileName")
+		file := namenode.NameSpace[fileName]
+		for i := 0; i < getChunkLength(file.Size); i++ {
+			namenode.DelChunk(file, fileName, i)
 		}
-		c.String(http.StatusOK, "DelFile:"+filename+" SUCCESS\n")
+		c.String(http.StatusOK, "DelFile:"+fileName+" SUCCESS\n")
 	})
 
 	router.GET("/test", func(c *gin.Context) {
@@ -121,30 +75,31 @@ func (namenode *NameNode) Run() {
 	router.Run(":" + strconv.Itoa(namenode.Port))
 }
 
-func (namenode *NameNode) AssembleFile(file File, filename string) []byte {
-	fmt.Println("@ AssembleFile of ", filename)
-	filedata := make([][]byte, file.Length/SPLIT_UNIT)
-	for i := 0; i < file.Length/SPLIT_UNIT; i++ {
+func (namenode *NameNode) AssembleFile(file File, fileName string) []byte {
+	fmt.Println("@ AssembleFile of ", fileName)
+	chunkLength := getChunkLength(file.Size)
+	filedata := make([][]byte, chunkLength)
+	for i := 0; i < chunkLength; i++ {
 		// fmt.Println("& Assmble chunk-",i)
-		b := readFileByBytes(namenode.NAMENODE_DIR + "/" + filename + "/chunk-" + strconv.Itoa(i))
+		b := readFileByBytes(namenode.NAMENODE_DIR + "/" + getHash([]byte(fileName)) + "/chunk-" + strconv.Itoa(i))
 		// fmt.Println("& Assmble chunk b=", b)
-		filedata[i] = make([]byte, 100)
+		filedata[i] = make([]byte, SPLIT_UNIT)
 		filedata[i] = b
 		// fmt.Println("& Assmble chunk filedata[i]=", filedata[i])
 		// fmt.Println("& Assmble chunk-",i)
 	}
 	fdata := bytes.Join(filedata, nil)
-	FastWrite(namenode.NAMENODE_DIR+"/nn-"+filename, fdata)
+	FastWrite(namenode.NAMENODE_DIR+"/nn-"+fileName, fdata)
 	return fdata
 }
 
-func (namenode *NameNode) GetChunk(file File, filename string, num int) { //ChunkUnit chunkbytes []byte
+func (namenode *NameNode) GetChunk(file File, fileName string, num int) { //ChunkUnit chunkbytes []byte
 
-	fmt.Println("* getting chunk-", num, "of file:", filename)
+	fmt.Println("* getting chunk-", num, "of file:", fileName)
 
 	for i := 0; i < REDUNDANCE; i++ {
-		replicalocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-		repilcanum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+		replicalocation := file.Chunks[num][i].ServerLocation
+		repilcanum := file.Chunks[num][i].ReplicaNum
 		/* send Get chunkdata request */
 		url := replicalocation + "/getchunk/" + strconv.Itoa(repilcanum)
 		dataRes, err := http.Get(url)
@@ -161,7 +116,7 @@ func (namenode *NameNode) GetChunk(file File, filename string, num int) { //Chun
 		}
 		fmt.Println("** DataNode Response of Get chunk-", num, ": ", string(chunkbytes))
 		/* store chunkdata at nn local */
-		FastWrite(namenode.NAMENODE_DIR+"/"+filename+"/chunk-"+strconv.Itoa(num), chunkbytes)
+		FastWrite(namenode.NAMENODE_DIR+"/"+getHash([]byte(fileName))+"/chunk-"+strconv.Itoa(num), chunkbytes)
 
 		/* send Get chunkhash request */
 		hashRes, err := http.Get(replicalocation + "/getchunkhash/" + strconv.Itoa(repilcanum))
@@ -178,11 +133,7 @@ func (namenode *NameNode) GetChunk(file File, filename string, num int) { //Chun
 		}
 
 		/* check hash */
-		// chunkfile := OpenFile(namenode.NAMENODE_DIR+"/"+filename+"/chunk-"+strconv.Itoa(chunknum))
-		hash := sha256.New()
-		hash.Write(chunkbytes)
-		// if _, err := io.Copy(hash, chunkfile); err != nil {fmt.Println("XXX NameNode error at sha256", err.Error())}
-		hashStr := hex.EncodeToString(hash.Sum(nil))
+		hashStr := getHash(chunkbytes)
 		fmt.Println("*** chunk hash calculated: ", hashStr)
 		fmt.Println("*** chunk hash get: ", string(chunkhash))
 
@@ -195,11 +146,11 @@ func (namenode *NameNode) GetChunk(file File, filename string, num int) { //Chun
 	}
 }
 
-func (namenode *NameNode) DelChunk(file File, filename string, num int) { //ChunkUnit chunkbytes []byte
-	fmt.Println("** deleting chunk-", num, "of file:", filename)
+func (namenode *NameNode) DelChunk(file File, fileName string, num int) { //ChunkUnit chunkbytes []byte
+	fmt.Println("** deleting chunk-", num, "of file:", fileName)
 	for i := 0; i < REDUNDANCE; i++ {
-		chunklocation := file.Chunks[num].ReplicaLocationList[i].ServerLocation
-		chunknum := file.Chunks[num].ReplicaLocationList[i].ReplicaNum
+		chunklocation := file.Chunks[num][i].ServerLocation
+		chunknum := file.Chunks[num][i].ReplicaNum
 		url := chunklocation + "/delchunk/" + strconv.Itoa(chunknum)
 
 		// response, err := http.Get(url)
@@ -229,28 +180,26 @@ func (namenode *NameNode) DelChunk(file File, filename string, num int) { //Chun
 }
 
 func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
-	redundance := namenode.REDUNDANCE
-	// fmt.Println("# redundance:",redundance)
-	var max [REDUNDANCE]int
-	for i := 0; i < redundance; i++ {
-		max[i] = 0
+	var max int
+	for i := 0; i < namenode.REDUNDANCE; i++ {
+		max = 0
 		for j := 0; j < namenode.DNNumber; j++ {
-			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max[i]].StorageAvail {
-				max[i] = j
+			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max].StorageAvail {
+				max = j
 			}
 		}
-		rlList[i].ServerLocation = namenode.DataNodes[max[i]].Location
-		rlList[i].ReplicaNum = namenode.DataNodes[max[i]].ChunkAvail[0]
-		n := namenode.DataNodes[max[i]].StorageAvail
-		// fmt.Println("*** n = ", n)
-		// fmt.Println("namenode.DataNodes[max[i]].ChunkAvail[0]", namenode.DataNodes[max[i]].ChunkAvail[0])
-		// fmt.Println("namenode.DataNodes[max[i]].ChunkAvail[n-1]", namenode.DataNodes[max[i]].ChunkAvail[n-1])
-		namenode.DataNodes[max[i]].ChunkAvail[0] = namenode.DataNodes[max[i]].ChunkAvail[n-1]
-		namenode.DataNodes[max[i]].ChunkAvail = namenode.DataNodes[max[i]].ChunkAvail[0 : n-1]
-		namenode.DataNodes[max[i]].StorageAvail--
+
+		// choose the datanode which has max available capacity
+		rlList[i].ServerLocation = namenode.DataNodes[max].Location
+		rlList[i].ReplicaNum = namenode.DataNodes[max].ChunkAvail[0]
+		n := namenode.DataNodes[max].StorageAvail
+
+		// update datanode metadata
+		namenode.DataNodes[max].ChunkAvail[0] = namenode.DataNodes[max].ChunkAvail[n-1]
+		namenode.DataNodes[max].ChunkAvail = namenode.DataNodes[max].ChunkAvail[0 : n-1]
+		namenode.DataNodes[max].StorageAvail--
 	}
 
-	// fmt.Println("max[0-2]: ",max)
 	return rlList
 }
 
@@ -340,115 +289,4 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 func (namenode *NameNode) PutDNMeta() {
 	// 把namenode.DataNodes传给各个DataNodes
 	// 没必要了，因为给DN发送存储位置信息时现在DN会进行更新了。
-}
-
-func (namenode *NameNode) recvFrom(c *gin.Context) string {
-	file, header, err := c.Request.FormFile("putfile") // no multipart boundary param in Content-Type
-	if err != nil {
-		c.String(http.StatusBadRequest, "Bad request")
-		fmt.Println("XXX NameNode error at Request FormFile", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-		return "null"
-	}
-
-	tmp := strings.Split(header.Filename, "/") // in case a full path passed
-	filename := tmp[len(tmp)-1]
-	fmt.Println()
-	fmt.Println(file, err, filename)
-	fmt.Println()
-
-	out, err := os.Create(namenode.NAMENODE_DIR + "/" + filename)
-	if err != nil {
-		c.String(http.StatusBadRequest, "NameNode error at Create file")
-		fmt.Println("XXX NameNode error at Create", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-		return "null"
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, file) //transfer file from networkr to local
-	if err != nil {
-		c.String(http.StatusBadRequest, "NameNode error at Copy file")
-		fmt.Println("XXX NameNode error at Copy", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
-		return "null"
-	}
-
-	c.String(http.StatusCreated, "PutFile SUCCESS\n")
-	return filename
-}
-
-func PutChunk(dataChunkPath string, chunkNum int, replicaLocationList [REDUNDANCE]ReplicaLocation) {
-
-	replicaLen := len(replicaLocationList)
-
-	for i := 0; i < replicaLen; i++ {
-		fmt.Printf("* Putting [Chunk %d] to TDFS [DataNode: %s] at [Replica-%d].\n",
-			chunkNum, replicaLocationList[0].ServerLocation, replicaLocationList[0].ReplicaNum) //  as %s , fName
-
-		/** Create form file **/
-		buf := new(bytes.Buffer)
-		writer := multipart.NewWriter(buf)
-		formFile, err := writer.CreateFormFile("putchunk", dataChunkPath)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Create form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-
-		// fmt.Println("*** Create Form File OK ")
-
-		/** Open source file **/
-		srcFile, err := os.Open(dataChunkPath)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Open source file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-		defer srcFile.Close()
-
-		// fmt.Println("*** Open source file OK ")
-
-		/** Write to form file **/
-		_, err = io.Copy(formFile, srcFile)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Write to form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-
-		// fmt.Println("*** Write to form file OK ")
-
-		/** Set Params Before Post **/
-		params := map[string]string{
-			"ReplicaNum": strconv.Itoa(replicaLocationList[i].ReplicaNum), //chunkNum
-		}
-		for key, val := range params {
-			err = writer.WriteField(key, val)
-			if err != nil {
-				fmt.Println("XXX NameNode error at Set Params", err.Error())
-				TDFSLogger.Fatal("XXX NameNode error: ", err)
-			}
-		}
-		contentType := writer.FormDataContentType()
-		writer.Close() // 发送之前必须调用Close()以写入结尾行
-
-		// fmt.Println("*** Set Params OK ")
-
-		/** Post form file **/
-		res, err := http.Post(replicaLocationList[i].ServerLocation+"/putchunk",
-			contentType, buf) // /"+strconv.Itoa(chunkNum)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Post form file", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-		defer res.Body.Close()
-
-		fmt.Println("** Post form file OK ")
-
-		/** Read response **/
-		response, err := ioutil.ReadAll(res.Body)
-		if err != nil {
-			fmt.Println("XXX NameNode error at Read response", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
-		}
-		fmt.Print("*** DataNoed Response: ", string(response))
-	}
 }

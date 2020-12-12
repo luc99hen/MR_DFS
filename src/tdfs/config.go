@@ -21,18 +21,15 @@ type ChunkUnit []byte // SPLIT_UNIT
 ////// File to Chunk
 type NameSpaceStruct map[string]File
 type File struct {
-	Info             string // file info
-	Length           int
-	Chunks           [CHUNKTOTAL]FileChunk
-	Offset_LastChunk int
+	Info             string      `json:"Info"`
+	Size             int         `json:"Size"`
+	Chunks           []FileChunk `json:"Chunks"`
+	Offset_LastChunk int         `json:"Offset_LastChunk"`
 }
-type FileChunk struct {
-	Info                string // checksum
-	ReplicaLocationList [REDUNDANCE]ReplicaLocation
-}
+type FileChunk [REDUNDANCE]ReplicaLocation
 type ReplicaLocation struct {
-	ServerLocation string
-	ReplicaNum     int
+	ServerLocation string `json:"ServerLocation"`
+	ReplicaNum     int    `json:"ReplicaNum"`
 }
 
 type Client struct {

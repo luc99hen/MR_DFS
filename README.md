@@ -1,6 +1,7 @@
 upgrade proposal:
 - 添加更新文件功能 update， append(线程安全)
 - Client通过NN读取相关信息并通过NN与DN交互通信。 => (GFS)版本，Client尽量减少与NN的交互减轻NN的压力。
+    - put 接口已连通（大文件优化待实现）
 - 利用Log日志做replay
 
 ## docker usage
