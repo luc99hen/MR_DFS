@@ -24,3 +24,10 @@ TDFS Log: 2020/12/12 18:35:03 namenode.go:142: XXX NameNode error: no available 
 TDFS Log: 2020/12/12 18:35:03 client.go:257: XXX Client error: Post http://localhost:11090/getReplicaLocations: EOF
 TDFS Log: 2020/12/13 12:13:47 namenode.go:26: XXX NameNode error: no available datanode
 TDFS Log: 2020/12/13 12:13:47 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/13 14:24:06 datanode.go:185: XXX DataNode error: unlinkat TinyDFS/DataNode3/achunkhashs: permission denied
+TDFS Log: 2020/12/13 14:44:06 datanode.go:185: XXX DataNode error: unlinkat TinyDFS/DataNode3/achunkhashs: permission denied
+TDFS Log: 2020/12/13 14:46:05 datanode.go:179: XXX DataNode error: mkdir TinyDFS/DataNode3: permission denied
+TDFS Log: 2020/12/13 16:00:23 client.go:224: XXX Client error: Post http://datanode1:11091/putchunk: dial tcp: lookup datanode1: Temporary failure in name resolution
+TDFS Log: 2020/12/13 16:44:45 client.go:224: XXX Client error: Post http://datanode3:11093/putchunk: dial tcp: lookup datanode3: Temporary failure in name resolution
+TDFS Log: 2020/12/13 16:49:07 client.go:224: XXX Client error: Post http://datanode1:11091/putchunk: dial tcp 172.18.0.4:11091: connect: connection refused
+TDFS Log: 2020/12/13 16:50:29 client.go:167: XXX Client error: file already exist in namespace

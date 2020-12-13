@@ -114,6 +114,12 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 			defer dataRes.Body.Close()
+
+			if dataRes.StatusCode != http.StatusOK {
+				fmt.Println("X=X the first replica of chunk-", num, "'s hash(checksum) is WRONG, continue to request anothor replica...")
+				continue
+			}
+
 			/* deal response of Get */
 			chunkbytes, err := ioutil.ReadAll(dataRes.Body)
 			if err != nil {
@@ -124,32 +130,6 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 			/* store chunkdata at nn local */
 
 			FastWrite(tmpChunkPath+"/chunk-"+strconv.Itoa(num), chunkbytes)
-
-			/* send Get chunkhash request */
-			hashRes, err := http.Get(replicalocation + "/getchunkhash/" + strconv.Itoa(repilcanum))
-			if err != nil {
-				fmt.Println("XXX Client error at Get chunkhash", err.Error())
-				TDFSLogger.Panic("XXX Client error: ", err)
-			}
-			defer hashRes.Body.Close()
-			/* deal Get chunkhash request */
-			chunkhash, err := ioutil.ReadAll(hashRes.Body)
-			if err != nil {
-				fmt.Println("XXX Client error at Read response of chunkhash", err.Error())
-				TDFSLogger.Panic("XXX Client error: ", err)
-			}
-
-			/* check hash */
-			hashStr := getHash(chunkbytes)
-			fmt.Println("*** chunk hash calculated: ", hashStr)
-			fmt.Println("*** chunk hash get: ", string(chunkhash))
-
-			if hashStr == string(chunkhash) {
-				break
-			} else {
-				fmt.Println("X=X the first replica of chunk-", num, "'s hash(checksum) is WRONG, continue to request anothor replica...")
-				continue
-			}
 		}
 	}
 

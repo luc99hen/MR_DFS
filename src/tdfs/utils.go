@@ -200,3 +200,10 @@ func getChunkLength(fileSize int) int {
 	}
 	return fileSize/SPLIT_UNIT + 1
 }
+
+func updateDataNodeMetadata(datanode *DataNode) {
+	n := datanode.StorageAvail
+	datanode.ChunkAvail[0] = datanode.ChunkAvail[n-1]
+	datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
+	datanode.StorageAvail--
+}

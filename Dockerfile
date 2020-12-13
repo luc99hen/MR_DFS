@@ -9,9 +9,6 @@ LABEL maintainer="Lu Chen <1813927768@qq.com>"
 # Set the Current Working Directory inside the container
 WORKDIR /dfs
 
-# Copy go mod and sum files
-COPY go.mod go.sum ./
-
 # Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 

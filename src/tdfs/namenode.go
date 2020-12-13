@@ -155,14 +155,12 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 		}
 
 		// choose the datanode which has max available capacity
-		rlList[i].ServerLocation = namenode.DataNodes[max].Location
-		rlList[i].ReplicaNum = namenode.DataNodes[max].ChunkAvail[0]
-		n := namenode.DataNodes[max].StorageAvail
+		selectedDN := &namenode.DataNodes[max]
+		rlList[i].ServerLocation = selectedDN.Location
+		rlList[i].ReplicaNum = selectedDN.ChunkAvail[0]
 
 		// update datanode metadata
-		namenode.DataNodes[max].ChunkAvail[0] = namenode.DataNodes[max].ChunkAvail[n-1]
-		namenode.DataNodes[max].ChunkAvail = namenode.DataNodes[max].ChunkAvail[0 : n-1]
-		namenode.DataNodes[max].StorageAvail--
+		updateDataNodeMetadata(selectedDN)
 	}
 
 	return rlList

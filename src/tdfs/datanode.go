@@ -10,8 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	// "io/ioutil"
-	"crypto/sha256"
-	"encoding/hex"
+
 	"os"
 	"strings"
 )
@@ -46,17 +45,11 @@ func (datanode *DataNode) Run() {
 
 		chunkdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk-" + ReplicaNum)
 
-		hash := sha256.New()
-		// if _, err := io.Copy(hash, file); err != nil {fmt.Println("DataNode error at sha256", err.Error())}
-		hash.Write(chunkdata)
-		hashStr := hex.EncodeToString(hash.Sum(nil))
+		hashStr := getHash(chunkdata)
 		fmt.Println("** chunk hash", ReplicaNum, ": %s", hashStr)
 		FastWrite(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+ReplicaNum, []byte(hashStr))
 
-		n := datanode.StorageAvail
-		datanode.ChunkAvail[0] = datanode.ChunkAvail[n-1]
-		datanode.ChunkAvail = datanode.ChunkAvail[0 : n-1]
-		datanode.StorageAvail--
+		updateDataNodeMetadata(datanode)
 
 		c.String(http.StatusCreated, "PutChunk SUCCESS\n")
 	})
@@ -70,21 +63,23 @@ func (datanode *DataNode) Run() {
 		}
 		fmt.Println("Parsed num: ", num)
 
-		fdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(num))
-		c.String(http.StatusOK, string(fdata))
-	})
+		chunkBytes := readFileByBytes(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(num))
+		chunkHash := readFileByBytes(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
 
-	router.GET("/getchunkhash/:chunknum", func(c *gin.Context) {
-		chunknum := c.Param("chunknum")
-		num, err := strconv.Atoi(chunknum)
-		if err != nil {
-			fmt.Println("XXX DataNode error(getchunkhash) at Atoi parse chunknum to int", err.Error())
-			TDFSLogger.Panic("XXX DataNode error: ", err)
+		/* check hash */
+		hashStr := getHash(chunkBytes)
+		fmt.Println("*** chunk hash calculated: ", hashStr)
+		fmt.Println("*** chunk hash get: ", string(chunkHash))
+
+		if hashStr == string(chunkHash) {
+			c.String(http.StatusOK, string(chunkBytes))
+		} else {
+			c.String(http.StatusExpectationFailed, "")
+			fmt.Println("X=X the broken chunk-", num, "'s hash(checksum) is WRONG")
+			TDFSLogger.Panic("XXX Broken chunk found at ", num)
+			// broken chunk, something could be done to recover it
 		}
-		fmt.Println("Parsed num: ", num)
 
-		fdata := readFileByBytes(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
-		c.String(http.StatusOK, string(fdata))
 	})
 
 	router.DELETE("/delchunk/:chunknum", func(c *gin.Context) {
@@ -102,27 +97,6 @@ func (datanode *DataNode) Run() {
 
 		c.String(http.StatusOK, "delete DataNode{*}/chunk-"+strconv.Itoa(num)+" SUCCESS")
 	})
-
-	// router.GET("/delchunk/:chunknum", func(c *gin.Context) {
-	// 	chunknum := c.Param("chunknum")
-	// 	num, err := strconv.Atoi(chunknum)
-	// 	if err!=nil{
-	// 		fmt.Println("XXX DataNode error at Atoi parse chunknum to int", err.Error())
-	// 		TDFSLogger.Panic("XXX DataNode error: ", err)
-	// 	}
-	// 	fmt.Println("Parsed num: ", num)
-
-	// 	CleanFile(datanode.DATANODE_DIR+"/chunk-"+strconv.Itoa(num))
-	// 	// CleanFile(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+strconv.Itoa(num))
-	// 	DeleteFile(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+strconv.Itoa(num))
-
-	// 	c.String(http.StatusOK, "delete DataNode{*}/chunk-"+strconv.Itoa(num)+" SUCCESS")
-	// })
-
-	// router.POST("/putmeta", func(c *gin.Context) {
-	// 	ReplicaNum := c.PostForm("ReplicaNum")
-	// 	fmt.Printf("*** New DataNode Data = %s\n",ReplicaNum)
-	// })
 
 	router.GET("/getmeta", func(c *gin.Context) {
 		c.JSON(http.StatusOK, datanode)
