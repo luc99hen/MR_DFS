@@ -10,3 +10,4 @@ TDFS Log: 2020/12/13 20:23:43 client.go:32: XXX Client error at del file(Do):<ni
 TDFS Log: 2020/12/13 20:27:08 client.go:32: XXX Client error at del file(Do):<nil>
 TDFS Log: 2020/12/13 20:29:30 client.go:32: XXX Client error at del file(Do):<nil>
 TDFS Log: 2020/12/13 20:32:47 client.go:32: XXX Client error at del file(Do):<nil>
+TDFS Log: 2020/12/13 21:01:23 client.go:252: XXX Client error at Get replication locationPost http://datanode:11090/getReplicaLocations: dial tcp: lookup datanode: Temporary failure in name resolution

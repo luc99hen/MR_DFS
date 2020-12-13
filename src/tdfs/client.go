@@ -82,7 +82,7 @@ func AssembleChunks(file *File, fileName string) {
 	tmpChunkPath := "./" + getHash([]byte(fileName))
 	for i := 0; i < chunkLength; i++ {
 		b := readFileByBytes(tmpChunkPath + "/chunk-" + strconv.Itoa(i))
-		filedata[i] = make([]byte, SPLIT_UNIT)
+		filedata[i] = make([]byte, CHUNK_SIZE)
 		filedata[i] = b
 	}
 

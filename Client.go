@@ -12,7 +12,7 @@ import (
 func main() {
 
 	var client tdfs.Client
-	client.SetConfig("http://localhost:11090")
+	client.SetConfig("http://namenode:11090")
 
 	filenameOfGet := flag.String("getfile", "unknow", "the filename of the file you want to get") // SmallFile
 	filenameOfPut := flag.String("putfile", "unknow", "the filename of the file you want to put") // SmallFile.txt

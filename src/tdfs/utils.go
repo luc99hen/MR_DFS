@@ -14,13 +14,13 @@ import (
 func splitToFileAndStore(fileName string, storeFile string) (chunkLen int, offsetLast int) {
 	data := readFileByBytes(fileName)
 	var i int = 0
-	for i < len(data)/SPLIT_UNIT {
-		FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+	for i < len(data)/CHUNK_SIZE {
+		FastWrite(storeFile+strconv.Itoa(i), data[i*CHUNK_SIZE:(i+1)*CHUNK_SIZE])
 		i++
 	}
-	FastWrite(storeFile+strconv.Itoa(i), data[i*SPLIT_UNIT:])
+	FastWrite(storeFile+strconv.Itoa(i), data[i*CHUNK_SIZE:])
 	chunkLen = i
-	offsetLast = len(data) - i*SPLIT_UNIT
+	offsetLast = len(data) - i*CHUNK_SIZE
 
 	return chunkLen + 1, offsetLast
 }
@@ -173,12 +173,12 @@ func SplitToChunksByName(fPath string) (chunklist []ChunkUnit, offsetLast int, f
 	data := readFileByBytes(fPath)
 	var i int = 0
 	fileLen = len(data)
-	for i < fileLen/SPLIT_UNIT {
-		chunklist = append(chunklist, data[i*SPLIT_UNIT:(i+1)*SPLIT_UNIT])
+	for i < fileLen/CHUNK_SIZE {
+		chunklist = append(chunklist, data[i*CHUNK_SIZE:(i+1)*CHUNK_SIZE])
 		i++
 	}
-	chunklist = append(chunklist, data[i*SPLIT_UNIT:])
-	offsetLast = fileLen - i*SPLIT_UNIT
+	chunklist = append(chunklist, data[i*CHUNK_SIZE:])
+	offsetLast = fileLen - i*CHUNK_SIZE
 	return chunklist, offsetLast, fileLen
 }
 
@@ -195,10 +195,10 @@ func getHash(bytes []byte) (hashStr string) {
 }
 
 func getChunkLength(fileSize int) int {
-	if fileSize%SPLIT_UNIT == 0 {
-		return fileSize / SPLIT_UNIT
+	if fileSize%CHUNK_SIZE == 0 {
+		return fileSize / CHUNK_SIZE
 	}
-	return fileSize/SPLIT_UNIT + 1
+	return fileSize/CHUNK_SIZE + 1
 }
 
 func updateDataNodeMetadata(datanode *DataNode) {

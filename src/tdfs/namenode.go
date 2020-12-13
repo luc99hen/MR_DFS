@@ -198,7 +198,7 @@ func (namenode *NameNode) Reset() {
 
 }
 
-func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance int, dnlocations []string) {
+func (namenode *NameNode) SetConfig(location string, dnnumber int, dnlocations []string) {
 	temp := strings.Split(location, ":")
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
@@ -213,7 +213,7 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	namenode.Location = location
 	namenode.DNNumber = dnnumber
 	namenode.DNLocations = dnlocations
-	namenode.REDUNDANCE = redundance
+	namenode.REDUNDANCE = REDUNDANCE
 	fmt.Println("************************************************************")
 	fmt.Println("************************************************************")
 	fmt.Printf("*** Successfully Set Config data for the namenode\n")

@@ -8,16 +8,15 @@ import (
 )
 
 const NN_DIR string = "TinyDFS/NameNode"
-const NN_LOCATION string = "http://localhost:11090"
-const rEDUNDANCE int = 2
+const NN_LOCATION string = "http://namenode:11090"
 
 func main() {
 	var nn tdfs.NameNode
 	nn.NAMENODE_DIR = NN_DIR
-	dnlocations := []string{"http://datanode1:11091", "http://datanode2:11092", "http://datanode3:11093"}
+	dnlocations := []string{"http://datanode1:11091", "http://datanode2:11092", "http://datanode3:11093", "http://datanode4:11094", "http://datanode5:11095"}
 
 	nn.Reset()
-	nn.SetConfig(NN_LOCATION, len(dnlocations), rEDUNDANCE, dnlocations)
+	nn.SetConfig(NN_LOCATION, len(dnlocations), dnlocations)
 	nn.GetDNMeta() // UpdateMeta
 
 	nn.Run()

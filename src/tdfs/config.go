@@ -5,9 +5,9 @@ import "sync"
 /** Configurations for Pseudo Distributed Mode **/
 
 /** Configurations for ALL Mode **/
-const SPLIT_UNIT int = 100
-const REDUNDANCE int = 2
-const CHUNKTOTAL int = 100
+const CHUNK_SIZE int = 1024 // 1kb per chunk
+const REDUNDANCE int = 3
+const CHUNK_DN int = 1000
 
 // Chunk 一律表示逻辑概念，表示文件块
 // Replica 表示文件块副本，是实际存储的

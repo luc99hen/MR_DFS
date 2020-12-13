@@ -14,7 +14,7 @@ const DN_DIR_PREFIX string = "TinyDFS/DataNode"
 
 func main() {
 	id := flag.String("id", "1", "directory of chunks")
-	capacity := flag.Int("capacity", 100, "directory of chunks")
+	capacity := flag.Int("capacity", tdfs.CHUNK_DN, "directory of chunks")
 	local := flag.Bool("local", false, "is datanode run on host")
 
 	flag.Parse()

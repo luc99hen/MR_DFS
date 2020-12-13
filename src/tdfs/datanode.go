@@ -119,7 +119,7 @@ func (datanode *DataNode) SetConfig(location string, storageTotal int) {
 
 	datanode.ChunkAvail = append(datanode.ChunkAvail, 0)
 	for i := 1; i < datanode.StorageAvail; i++ {
-		datanode.ChunkAvail = append(datanode.ChunkAvail, 100-i)
+		datanode.ChunkAvail = append(datanode.ChunkAvail, datanode.StorageTotal-i)
 	}
 
 	datanode.LastEdit = time.Now().Unix()

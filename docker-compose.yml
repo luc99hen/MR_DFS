@@ -31,6 +31,26 @@ services:
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
   
+  datanode4:
+    image: go-test:latest
+    command: sh -c "go run /dfs/DN.go -id 4"
+    ports:
+      - 11094:11094
+    expose:
+      - 11094
+    volumes:
+      - ./TinyDFS:/dfs/TinyDFS
+  
+  datanode5:
+    image: go-test:latest
+    command: sh -c "go run /dfs/DN.go -id 5"
+    ports:
+      - 11095:11095
+    expose:
+      - 11095
+    volumes:
+      - ./TinyDFS:/dfs/TinyDFS
+  
   namenode:
     image: go-test:latest
     command: sh -c "go run /dfs/NN.go"
@@ -38,6 +58,8 @@ services:
       - "datanode1"
       - "datanode2"
       - "datanode3"
+      - "datanode4"
+      - "datanode5"
     ports:
       - 11090:11090
     expose:
