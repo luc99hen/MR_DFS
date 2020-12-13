@@ -14,7 +14,7 @@ const rEDUNDANCE int = 2
 func main() {
 	var nn tdfs.NameNode
 	nn.NAMENODE_DIR = NN_DIR
-	dnlocations := []string{"http://datanode1:11091", "http://datanode2:11092", "http://172.17.0.1:11093"}
+	dnlocations := []string{"http://datanode1:11091", "http://datanode2:11092", "http://datanode3:11093"}
 
 	nn.Reset()
 	nn.SetConfig(NN_LOCATION, len(dnlocations), rEDUNDANCE, dnlocations)

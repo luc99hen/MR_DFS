@@ -1,4 +1,4 @@
-rm -rf ./TinyDFS
+rm -rf ./TinyDFS/*
 
 docker-compose stop
 docker build -t go-test .

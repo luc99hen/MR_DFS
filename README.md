@@ -3,13 +3,12 @@ upgrade proposal:
 - [x] Client通过NN读取相关信息并通过NN与DN交互通信。 => (GFS)版本，Client尽量减少与NN的交互减轻NN的压力。
 - [x] logger 重构
 - [x] hash check on datanode
-
+- [x] cocurrent append 
 
 
 more features:
 - [ ] remote copy(transfer chunks between datanodes)
 - [ ] append without padding
-- [ ] cocurrent append 
 - [ ] recover a broken chunk
 
 

@@ -29,9 +29,14 @@ func (namenode *NameNode) Run() {
 		mode := c.PostFormArray("mode")[0]
 
 		// check if fileName in namespace
-		file, ok := namenode.NameSpace[fileName]
+		namenode.NameSpace.mu.Lock()
+		defer namenode.NameSpace.mu.Unlock()
+		file, ok := namenode.NameSpace.NameSpaceMap[fileName]
+
 		defer func() {
 			if r := recover(); r != nil {
+				fmt.Println("## get replication error ", r)
+				TDFSLogger.Panic("XXX NameNode error: ", r)
 				c.JSON(http.StatusNotAcceptable, ResFile{file, ok})
 			}
 		}()
@@ -56,7 +61,7 @@ func (namenode *NameNode) Run() {
 				// update target file metadata
 				file.Size = appendFile.Size + file.Size
 				file.Offset_LastChunk = appendFile.Offset_LastChunk
-				namenode.NameSpace[fileName] = file
+				namenode.NameSpace.NameSpaceMap[fileName] = file
 
 				fmt.Println("## append file allocated successfully ")
 
@@ -83,7 +88,7 @@ func (namenode *NameNode) Run() {
 				file.Chunks = append(file.Chunks, replicaLocationList)
 			}
 
-			namenode.NameSpace[fileName] = file
+			namenode.NameSpace.NameSpaceMap[fileName] = file
 			fmt.Println("## new file allocated successfully", fileName)
 			c.JSON(http.StatusOK, ResFile{file, ok})
 		}
@@ -92,11 +97,19 @@ func (namenode *NameNode) Run() {
 	// router.DELETE GET
 	router.DELETE("/delfile/:fileName", func(c *gin.Context) {
 		fileName := c.Param("fileName")
-		file := namenode.NameSpace[fileName]
-		for i := 0; i < getChunkLength(file.Size); i++ {
-			namenode.DelChunk(file, fileName, i)
+		namenode.NameSpace.mu.Lock()
+		if file, ok := namenode.NameSpace.NameSpaceMap[fileName]; ok {
+			delete(namenode.NameSpace.NameSpaceMap, fileName)
+			namenode.NameSpace.mu.Unlock()
+			for i := 0; i < getChunkLength(file.Size); i++ {
+				namenode.DelChunk(file, fileName, i)
+			}
+			c.String(http.StatusOK, "DelFile:"+fileName+" SUCCESS\n")
+		} else {
+			namenode.NameSpace.mu.Unlock()
+			fmt.Println("## del file not found ", fileName)
+			c.String(http.StatusNotFound, "DelFile:"+fileName+" Not Found\n")
 		}
-		c.String(http.StatusOK, "DelFile:"+fileName+" SUCCESS\n")
 	})
 
 	router.GET("/test", func(c *gin.Context) {
@@ -194,7 +207,8 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	}
 
 	ns := NameSpaceStruct{}
-	namenode.NameSpace = ns
+	ns.NameSpaceMap = map[string]File{}
+	namenode.NameSpace = &ns
 	namenode.Port = res
 	namenode.Location = location
 	namenode.DNNumber = dnnumber

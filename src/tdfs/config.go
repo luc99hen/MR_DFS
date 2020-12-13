@@ -1,5 +1,7 @@
 package tdfs
 
+import "sync"
+
 /** Configurations for Pseudo Distributed Mode **/
 
 /** Configurations for ALL Mode **/
@@ -19,7 +21,10 @@ type ResFile struct {
 }
 
 ////// File to Chunk
-type NameSpaceStruct map[string]File
+type NameSpaceStruct struct {
+	NameSpaceMap map[string]File
+	mu           sync.Mutex
+}
 type File struct {
 	Info             string      `json:"Info"`
 	Size             int         `json:"Size"`
@@ -42,7 +47,7 @@ type Config struct {
 }
 
 type NameNode struct {
-	NameSpace    NameSpaceStruct
+	NameSpace    *NameSpaceStruct
 	Location     string
 	Port         int
 	DNNumber     int

@@ -27,8 +27,8 @@ func (client *Client) DelFile(fName string) {
 	}
 	// Fetch Request
 	response, err := c.Do(req)
-	if err != nil {
-		fmt.Println("XXX Client error at del file(Do):", err.Error())
+	if err != nil || response.StatusCode != http.StatusOK {
+		fmt.Println("XXX Client error at del file(Do)", err)
 		TDFSLogger.Panic("XXX Client error at del file(Do):", err)
 	}
 	defer response.Body.Close()
@@ -248,8 +248,8 @@ func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetL
 
 	response, err := http.PostForm(client.NameNodeAddr+"/getReplicaLocations", data)
 	if err != nil || response.StatusCode != http.StatusOK {
-		fmt.Println("XXX Client error at Get replication location of ", client.NameNodeAddr, ": ", err.Error())
-		TDFSLogger.Panic("XXX Client error: ", err)
+		fmt.Println("XXX Client error at Get replication location of ", client.NameNodeAddr, err)
+		TDFSLogger.Panic("XXX Client error at Get replication location", err)
 	}
 	defer response.Body.Close()
 
@@ -261,46 +261,6 @@ func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetL
 	}
 
 	return &resFile
-}
-
-func (client *Client) uploadFileByMultipart(fPath string) {
-	buf := new(bytes.Buffer)
-	writer := multipart.NewWriter(buf)
-	formFile, err := writer.CreateFormFile("putfile", fPath)
-	if err != nil {
-		fmt.Println("XXX Client error at Create form file", err.Error())
-		TDFSLogger.Panic("XXX Client error at Create form file", err)
-	}
-
-	srcFile, err := os.Open(fPath)
-	if err != nil {
-		fmt.Println("XXX Client error at Open source file", err.Error())
-		TDFSLogger.Panic("XXX Client error at Open source file", err)
-	}
-	defer srcFile.Close()
-
-	_, err = io.Copy(formFile, srcFile)
-	if err != nil {
-		fmt.Println("XXX Client error at Write to form file", err.Error())
-		TDFSLogger.Panic("XXX Client error at Write to form file", err)
-	}
-
-	contentType := writer.FormDataContentType()
-	writer.Close() // 发送之前必须调用Close()以写入结尾行
-	res, err := http.Post(client.NameNodeAddr+"/putfile", contentType, buf)
-	if err != nil {
-		fmt.Println("XXX Client error at Post form file", err.Error())
-		TDFSLogger.Panic("XXX Client error at Post form file", err)
-	}
-	defer res.Body.Close()
-
-	content, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println("XXX Client error at Read response", err.Error())
-		TDFSLogger.Panic("XXX Client error at Read response", err)
-	}
-
-	fmt.Println("*** NameNode Response: ", string(content))
 }
 
 // SetConfig :set the namenode address for the client
