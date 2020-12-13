@@ -22,15 +22,58 @@ func (namenode *NameNode) Run() {
 
 	router.POST("/getReplicaLocations", func(c *gin.Context) {
 
+		// parse post parameter
 		fileName := c.PostFormArray("fileName")[0]
 		fileSize := c.PostFormArray("fileSize")[0]
 		offsetLast := c.PostFormArray("offsetLast")[0]
+		mode := c.PostFormArray("mode")[0]
 
-		if file, ok := namenode.NameSpace[fileName]; ok {
+		// check if fileName in namespace
+		file, ok := namenode.NameSpace[fileName]
+		defer func() {
+			if r := recover(); r != nil {
+				c.JSON(http.StatusNotAcceptable, ResFile{file, ok})
+			}
+		}()
+
+		if ok {
 			// if this file exist in namespace (request from client.getFile)
-			c.JSON(http.StatusOK, ResFile{file, ok})
-		} else {
-			// otherwise (request from client.putFile)
+			fmt.Println("## file exist in namespace: ", fileName)
+			if mode == "append" {
+				var appendFile File
+
+				appendFile.Info = "{name:" + fileName + "}"
+				appendFile.Size, _ = strconv.Atoi(fileSize)
+				appendFile.Offset_LastChunk, _ = strconv.Atoi(offsetLast)
+
+				// allocate new chunks for appendFile
+				for i := 0; i < getChunkLength(appendFile.Size); i++ {
+					replicaLocationList := namenode.AllocateChunk()
+					file.Chunks = append(file.Chunks, replicaLocationList)
+					appendFile.Chunks = append(appendFile.Chunks, replicaLocationList)
+				}
+
+				// update target file metadata
+				file.Size = appendFile.Size + file.Size
+				file.Offset_LastChunk = appendFile.Offset_LastChunk
+				namenode.NameSpace[fileName] = file
+
+				fmt.Println("## append file allocated successfully ")
+
+				c.JSON(http.StatusOK, ResFile{appendFile, ok})
+			} else {
+				c.JSON(http.StatusOK, ResFile{file, ok})
+			}
+
+		} else { // if file not exist
+			fmt.Println("## file not exist in namespace: ", fileName)
+			// if mode != put, return not found
+			if mode != "put" {
+				c.JSON(http.StatusNotFound, ResFile{file, ok})
+				return
+			}
+
+			// if mode == put, create new file
 			file.Info = "{name:" + fileName + "}"
 			file.Size, _ = strconv.Atoi(fileSize)
 			file.Offset_LastChunk, _ = strconv.Atoi(offsetLast)
@@ -41,7 +84,7 @@ func (namenode *NameNode) Run() {
 			}
 
 			namenode.NameSpace[fileName] = file
-			fmt.Println("## replicaLocation allocated successfully", file)
+			fmt.Println("## new file allocated successfully", fileName)
 			c.JSON(http.StatusOK, ResFile{file, ok})
 		}
 	})
@@ -75,13 +118,13 @@ func (namenode *NameNode) DelChunk(file File, fileName string, num int) { //Chun
 		req, err := http.NewRequest("DELETE", url, nil)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Del chunk of ", file.Info, ": ", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			TDFSLogger.Panic("XXX NameNode error: ", err)
 		}
 
 		response, err := c.Do(req)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Del chunk(Do):", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error at Del chunk(Do):", err)
+			TDFSLogger.Panic("XXX NameNode error at Del chunk(Do):", err)
 		}
 		defer response.Body.Close()
 
@@ -89,7 +132,7 @@ func (namenode *NameNode) DelChunk(file File, fileName string, num int) { //Chun
 		delRes, err := ioutil.ReadAll(response.Body)
 		if err != nil {
 			fmt.Println("XXX NameNode error at Read response", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			TDFSLogger.Panic("XXX NameNode error: ", err)
 		}
 		fmt.Println("*** DataNode Response of Delete chunk-", num, "replica-", i, ": ", string(delRes))
 		// return chunkbytes
@@ -104,6 +147,11 @@ func (namenode *NameNode) AllocateChunk() (rlList [REDUNDANCE]ReplicaLocation) {
 			if namenode.DataNodes[j].StorageAvail > namenode.DataNodes[max].StorageAvail {
 				max = j
 			}
+		}
+
+		if len(namenode.DataNodes[max].ChunkAvail) == 0 {
+			fmt.Println("XXX NameNode error: no available datanode")
+			TDFSLogger.Panic("XXX NameNode error: no available datanode")
 		}
 
 		// choose the datanode which has max available capacity
@@ -128,13 +176,13 @@ func (namenode *NameNode) Reset() {
 	err := os.RemoveAll(namenode.NAMENODE_DIR + "/")
 	if err != nil {
 		fmt.Println("XXX NameNode error at RemoveAll dir", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		TDFSLogger.Panic("XXX NameNode error: ", err)
 	}
 
 	err = os.MkdirAll(namenode.NAMENODE_DIR, 0777)
 	if err != nil {
 		fmt.Println("XXX NameNode error at MkdirAll", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		TDFSLogger.Panic("XXX NameNode error: ", err)
 	}
 
 }
@@ -144,7 +192,7 @@ func (namenode *NameNode) SetConfig(location string, dnnumber int, redundance in
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
 		fmt.Println("XXX NameNode error at Atoi parse Port", err.Error())
-		TDFSLogger.Fatal("XXX NameNode error: ", err)
+		TDFSLogger.Panic("XXX NameNode error: ", err)
 	}
 
 	ns := NameSpaceStruct{}
@@ -182,7 +230,7 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		response, err := http.Get(namenode.DNLocations[i] + "/getmeta")
 		if err != nil {
 			fmt.Println("XXX NameNode error at Get meta of ", namenode.DNLocations[i], ": ", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			TDFSLogger.Panic("XXX NameNode error: ", err)
 		}
 		defer response.Body.Close()
 		// bytes, err := ioutil.ReadAll(response.Body)
@@ -194,16 +242,11 @@ func (namenode *NameNode) GetDNMeta() { // UpdateMeta
 		err = json.NewDecoder(response.Body).Decode(&dn)
 		if err != nil {
 			fmt.Println("XXX NameNode error at decode response to json.", err.Error())
-			TDFSLogger.Fatal("XXX NameNode error: ", err)
+			TDFSLogger.Panic("XXX NameNode error: ", err)
 		}
 		// fmt.Println(dn)
 		// err = json.Unmarshal([]byte(str), &dn)
 		namenode.DataNodes = append(namenode.DataNodes, dn)
 	}
 	namenode.ShowInfo()
-}
-
-func (namenode *NameNode) PutDNMeta() {
-	// 把namenode.DataNodes传给各个DataNodes
-	// 没必要了，因为给DN发送存储位置信息时现在DN会进行更新了。
 }

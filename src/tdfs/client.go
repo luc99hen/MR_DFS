@@ -15,7 +15,7 @@ import (
 
 func (client *Client) DelFile(fName string) {
 	fmt.Println("****************************************")
-	fmt.Printf("*** Deleting from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fName)
+	fmt.Printf("*** DelFile from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fName)
 
 	// Create client
 	c := &http.Client{}
@@ -23,20 +23,20 @@ func (client *Client) DelFile(fName string) {
 	req, err := http.NewRequest("DELETE", client.NameNodeAddr+"/delfile/"+fName, nil)
 	if err != nil {
 		fmt.Println("XXX Client error at del file(NewRequest):", err.Error())
-		TDFSLogger.Fatal("XXX Client error at del file(NewRequest):", err)
+		TDFSLogger.Panic("XXX Client error at del file(NewRequest):", err)
 	}
 	// Fetch Request
 	response, err := c.Do(req)
 	if err != nil {
 		fmt.Println("XXX Client error at del file(Do):", err.Error())
-		TDFSLogger.Fatal("XXX Client error at del file(Do):", err)
+		TDFSLogger.Panic("XXX Client error at del file(Do):", err)
 	}
 	defer response.Body.Close()
 	// Read Response Body
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
 		fmt.Println("XXX Client error at read response data", err.Error())
-		TDFSLogger.Fatal("XXX Client error at read response data", err)
+		TDFSLogger.Panic("XXX Client error at read response data", err)
 	}
 
 	fmt.Print("*** NameNode Response: ", string(bytes))
@@ -48,49 +48,58 @@ func (client *Client) Test() {
 	// if err != nil {
 	// 	fmt.Println("Client error at Get test", err.Error())
 	// }
-	client.PutFile("./data/BFile.txt")
-	// client.test("BFile.txt")
+	client.PutFile("./data/AFile.txt")
+	client.GetFile("AFile.txt")
+	client.AppendFile("./data/BFile.txt", "AFile.txt")
+	client.GetFile("AFile.txt")
 }
 
-// GetFile :download file from DFS
+// GetFile download file from DFS
 func (client *Client) GetFile(fileName string) {
+	fmt.Println("****************************************")
+	fmt.Printf("*** GetFile from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fileName)
+
 	dummyParas := 0
-	resFile := client.getReplicaLocations(fileName, dummyParas, dummyParas)
+	resFile := client.getReplicaLocations(fileName, dummyParas, dummyParas, "get")
 
 	if !resFile.Exist {
 		fmt.Println("XXX Client error at GetFile, file not exist")
-		TDFSLogger.Fatal("XXX Client error at GetFile, file not exist")
+		TDFSLogger.Panic("XXX Client error at GetFile, file not exist")
 		return
 	}
 
 	GetChunks(&resFile.File, fileName)
 	AssembleChunks(&resFile.File, fileName)
 
+	fmt.Println("****************************************")
 }
 
 func AssembleChunks(file *File, fileName string) {
-	fmt.Println("@ AssembleFile of ", fileName)
+	fmt.Println("*** AssembleFile of ", fileName)
+
 	chunkLength := getChunkLength(file.Size)
 	filedata := make([][]byte, chunkLength)
+	tmpChunkPath := "./" + getHash([]byte(fileName))
 	for i := 0; i < chunkLength; i++ {
-		// fmt.Println("& Assmble chunk-",i)
-		b := readFileByBytes("./" + getHash([]byte(fileName)) + "/chunk-" + strconv.Itoa(i))
-		// fmt.Println("& Assmble chunk b=", b)
+		b := readFileByBytes(tmpChunkPath + "/chunk-" + strconv.Itoa(i))
 		filedata[i] = make([]byte, SPLIT_UNIT)
 		filedata[i] = b
-		// fmt.Println("& Assmble chunk filedata[i]=", filedata[i])
-		// fmt.Println("& Assmble chunk-",i)
 	}
 
-	os.RemoveAll("./" + getHash([]byte(fileName)))
+	// remove tmp chunk file created by GetChunks()
+	os.RemoveAll(tmpChunkPath)
 
 	fdata := bytes.Join(filedata, nil)
 	FastWrite("./local-"+fileName, fdata)
-	fmt.Print("*** complete file: ", string(fdata))
+	fmt.Print("*** Assemble Complete: ", string(fdata))
 }
 
 // GetChunks pulls all the file chunk from datanode and store it in a temporary directory in clients
 func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
+
+	// prepare for the path store tmp chunks get from datanode
+	tmpChunkPath := "./" + getHash([]byte(fileName))
+	CheckPath(tmpChunkPath)
 
 	for num := 0; num < getChunkLength(file.Size); num++ {
 		fmt.Println("* getting chunk-", num, "of file:", fileName)
@@ -102,34 +111,32 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 			dataRes, err := http.Get(url)
 			if err != nil {
 				fmt.Println("XXX Client error at Get chunk of ", file.Info, ": ", err.Error())
-				TDFSLogger.Fatal("XXX Client error: ", err)
+				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 			defer dataRes.Body.Close()
 			/* deal response of Get */
 			chunkbytes, err := ioutil.ReadAll(dataRes.Body)
 			if err != nil {
 				fmt.Println("XXX Client error at ReadAll response of chunk", err.Error())
-				TDFSLogger.Fatal("XXX Client error: ", err)
+				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 			fmt.Println("** DataNode Response of Get chunk-", num, ": ", string(chunkbytes))
 			/* store chunkdata at nn local */
 
-			tmpChunkPath := "./" + getHash([]byte(fileName))
-			CheckPath(tmpChunkPath)
 			FastWrite(tmpChunkPath+"/chunk-"+strconv.Itoa(num), chunkbytes)
 
 			/* send Get chunkhash request */
 			hashRes, err := http.Get(replicalocation + "/getchunkhash/" + strconv.Itoa(repilcanum))
 			if err != nil {
 				fmt.Println("XXX Client error at Get chunkhash", err.Error())
-				TDFSLogger.Fatal("XXX Client error: ", err)
+				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 			defer hashRes.Body.Close()
 			/* deal Get chunkhash request */
 			chunkhash, err := ioutil.ReadAll(hashRes.Body)
 			if err != nil {
 				fmt.Println("XXX Client error at Read response of chunkhash", err.Error())
-				TDFSLogger.Fatal("XXX Client error: ", err)
+				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 
 			/* check hash */
@@ -148,16 +155,36 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 
 }
 
+// AppendFile append localfile to the remotefile in DFS
+func (client *Client) AppendFile(localFile string, remoteFile string) {
+	fmt.Println("****************************************")
+	fmt.Printf("*** AppendFile %s to TDFS [NameNode: %s] of /%s )\n", localFile, client.NameNodeAddr, remoteFile)
+
+	client.uploadFile(localFile, remoteFile, "append")
+
+	fmt.Println("****************************************")
+}
+
 // PutFile upload local files from client to DFS
-func (client *Client) PutFile(fPath string) {
+func (client *Client) PutFile(localFile string) {
+	fmt.Println("****************************************")
+	fmt.Printf("*** PutFile %s to TDFS [NameNode: %s] )\n", localFile, client.NameNodeAddr)
 
-	chunklist, offsetLast, fileLen := SplitToChunksByName(fPath)
+	client.uploadFile(localFile, localFile, "put")
 
-	fileName := path2Name(fPath)
-	resFile := client.getReplicaLocations(fileName, fileLen, offsetLast)
-	if resFile.Exist {
-		fmt.Println("XXX Client error: fileName already in namespace")
-		TDFSLogger.Fatal("XXX Client error: fileName already in namespace")
+	fmt.Println("****************************************")
+}
+
+func (client *Client) uploadFile(localFile string, remoteFile, mode string) {
+
+	chunklist, offsetLast, fileLen := SplitToChunksByName(localFile)
+
+	// incase localFile is a path
+	fileName := path2Name(remoteFile)
+	resFile := client.getReplicaLocations(fileName, fileLen, offsetLast, mode)
+	if resFile.Exist && mode == "put" {
+		fmt.Println("XXX Client error: file already exist in namespace")
+		TDFSLogger.Panic("XXX Client error: file already exist in namespace")
 		return
 	}
 	for i, replicaLocationList := range resFile.File.Chunks {
@@ -179,7 +206,7 @@ func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocatio
 		formFile, err := writer.CreateFormFile("putchunk", fileName)
 		if err != nil {
 			fmt.Println("XXX Client error at Create form file", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			TDFSLogger.Panic("XXX Client error: ", err)
 		}
 
 		// fmt.Println("*** Open source file OK ")
@@ -188,7 +215,7 @@ func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocatio
 		_, err = io.Copy(formFile, bytes.NewReader(chunkBytes))
 		if err != nil {
 			fmt.Println("XXX Client error at Write to form file", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			TDFSLogger.Panic("XXX Client error: ", err)
 		}
 
 		// fmt.Println("*** Write to form file OK ")
@@ -201,7 +228,7 @@ func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocatio
 			err = writer.WriteField(key, val)
 			if err != nil {
 				fmt.Println("XXX Client error at Set Params", err.Error())
-				TDFSLogger.Fatal("XXX Client error: ", err)
+				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 		}
 		contentType := writer.FormDataContentType()
@@ -214,7 +241,7 @@ func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocatio
 			contentType, buf) // /"+strconv.Itoa(chunkNum)
 		if err != nil {
 			fmt.Println("XXX Client error at Post form file", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			TDFSLogger.Panic("XXX Client error: ", err)
 		}
 		defer res.Body.Close()
 
@@ -224,24 +251,25 @@ func PutChunk(fileName string, chunkIndex int, chunkBytes []byte, replicaLocatio
 		response, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			fmt.Println("XXX Client error at Read response", err.Error())
-			TDFSLogger.Fatal("XXX Client error: ", err)
+			TDFSLogger.Panic("XXX Client error: ", err)
 		}
 		fmt.Print("*** DataNoed Response: ", string(response))
 	}
 }
 
 // getReplicaLocations asks the namenode for the replicaLocation of all the chunks
-func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetLast int) *ResFile {
+func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetLast int, from string) *ResFile {
 	data := url.Values{
 		"fileName":   {fileName},
 		"fileSize":   {strconv.Itoa(fileSize)},
 		"offsetLast": {strconv.Itoa(offsetLast)},
+		"mode":       {from}, // record where is this request from (put ,get or append)
 	}
 
 	response, err := http.PostForm(client.NameNodeAddr+"/getReplicaLocations", data)
-	if err != nil {
+	if err != nil || response.StatusCode != http.StatusOK {
 		fmt.Println("XXX Client error at Get replication location of ", client.NameNodeAddr, ": ", err.Error())
-		TDFSLogger.Fatal("XXX Client error: ", err)
+		TDFSLogger.Panic("XXX Client error: ", err)
 	}
 	defer response.Body.Close()
 
@@ -249,7 +277,7 @@ func (client *Client) getReplicaLocations(fileName string, fileSize int, offsetL
 	err = json.NewDecoder(response.Body).Decode(&resFile)
 	if err != nil {
 		fmt.Println("XXX Client error at decode response to json.", err.Error())
-		TDFSLogger.Fatal("XXX Client error: ", err)
+		TDFSLogger.Panic("XXX Client error: ", err)
 	}
 
 	return &resFile
@@ -261,20 +289,20 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 	formFile, err := writer.CreateFormFile("putfile", fPath)
 	if err != nil {
 		fmt.Println("XXX Client error at Create form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Create form file", err)
+		TDFSLogger.Panic("XXX Client error at Create form file", err)
 	}
 
 	srcFile, err := os.Open(fPath)
 	if err != nil {
 		fmt.Println("XXX Client error at Open source file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open source file", err)
+		TDFSLogger.Panic("XXX Client error at Open source file", err)
 	}
 	defer srcFile.Close()
 
 	_, err = io.Copy(formFile, srcFile)
 	if err != nil {
 		fmt.Println("XXX Client error at Write to form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Write to form file", err)
+		TDFSLogger.Panic("XXX Client error at Write to form file", err)
 	}
 
 	contentType := writer.FormDataContentType()
@@ -282,14 +310,14 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 	res, err := http.Post(client.NameNodeAddr+"/putfile", contentType, buf)
 	if err != nil {
 		fmt.Println("XXX Client error at Post form file", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Post form file", err)
+		TDFSLogger.Panic("XXX Client error at Post form file", err)
 	}
 	defer res.Body.Close()
 
 	content, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		fmt.Println("XXX Client error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response", err)
+		TDFSLogger.Panic("XXX Client error at Read response", err)
 	}
 
 	fmt.Println("*** NameNode Response: ", string(content))
@@ -298,27 +326,4 @@ func (client *Client) uploadFileByMultipart(fPath string) {
 // SetConfig :set the namenode address for the client
 func (client *Client) SetConfig(nnaddr string) {
 	client.NameNodeAddr = nnaddr
-}
-
-func uploadFileByBody(client *Client, fPath string) {
-	file, err := os.Open(fPath)
-	if err != nil {
-		fmt.Println("XXX Client Fatal error at Open uploadfile", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Open uploadfile", err)
-	}
-	defer file.Close()
-
-	res, err := http.Post(client.NameNodeAddr+"/putfile", "multipart/form-data", file) //
-	if err != nil {
-		fmt.Println("Client Fatal error at Post", err.Error())
-		TDFSLogger.Fatal("XXX Client error at at Post", err)
-	}
-	defer res.Body.Close()
-
-	content, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		fmt.Println("Client Fatal error at Read response", err.Error())
-		TDFSLogger.Fatal("XXX Client error at Read response", err)
-	}
-	fmt.Println(string(content))
 }

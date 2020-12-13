@@ -50,5 +50,5 @@ func main() {
 
 	// fmt.Println(flag.Args())
 	//, "smallfile.txt" /Users/treasersmac/Programming/MilkPrairie/Gou/TinyDFS/
-	client.Test()
+	// client.Test()
 }

@@ -1,3 +1,26 @@
 TDFS Log: 2020/12/12 13:30:11 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused
 TDFS Log: 2020/12/12 13:30:27 client.go:200: XXX Client error: Post http://localhost:11090/getReplicaLocations: dial tcp 127.0.0.1:11090: connect: connection refused
 TDFS Log: 2020/12/12 15:58:29 client.go:179: XXX Client error: fileName already in namespace
+TDFS Log: 2020/12/12 16:14:53 client.go:165: XXX Client error: file already exist in namespace
+TDFS Log: 2020/12/12 16:15:05 client.go:62: XXX Client error at GetFile, file not exist
+TDFS Log: 2020/12/12 16:15:47 utils.go:32: XXX Utils error at FastWriteopen ./local-data/AFile.txt: no such file or directory
+TDFS Log: 2020/12/12 16:26:38 client.go:62: XXX Client error at GetFile, file not exist
+TDFS Log: 2020/12/12 16:27:19 client.go:62: XXX Client error at GetFile, file not exist
+TDFS Log: 2020/12/12 18:09:26 utils.go:135: XXX Utils error at readFileByBytes(open): open BFile.txt: no such file or directory
+TDFS Log: 2020/12/12 18:11:54 utils.go:135: XXX Utils error at readFileByBytes(open): open AFile.txt: no such file or directory
+TDFS Log: 2020/12/12 18:13:23 client.go:170: XXX Client error: file already exist in namespace
+TDFS Log: 2020/12/12 18:21:04 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:23:25 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:25:49 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:27:19 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:28:38 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:29:54 client.go:257: XXX Client error: Post http://localhost:11090/getReplicaLocations: EOF
+TDFS Log: 2020/12/12 18:32:23 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:32:35 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:33:25 client.go:265: XXX Client error: EOF
+TDFS Log: 2020/12/12 18:34:21 namenode.go:142: XXX NameNode error: no available datanode
+TDFS Log: 2020/12/12 18:34:21 client.go:257: XXX Client error: Post http://localhost:11090/getReplicaLocations: EOF
+TDFS Log: 2020/12/12 18:35:03 namenode.go:142: XXX NameNode error: no available datanode
+TDFS Log: 2020/12/12 18:35:03 client.go:257: XXX Client error: Post http://localhost:11090/getReplicaLocations: EOF
+TDFS Log: 2020/12/13 12:13:47 namenode.go:26: XXX NameNode error: no available datanode
+TDFS Log: 2020/12/13 12:13:47 client.go:265: XXX Client error: EOF

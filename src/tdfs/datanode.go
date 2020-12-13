@@ -28,7 +28,7 @@ func (datanode *DataNode) Run() {
 		file, header, err := c.Request.FormFile("putchunk")
 		if err != nil {
 			c.String(http.StatusBadRequest, "XXX Bad request")
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 			return
 		}
 		filename := header.Filename
@@ -39,7 +39,7 @@ func (datanode *DataNode) Run() {
 		chunkout, err := os.Create(datanode.DATANODE_DIR + "/chunk-" + ReplicaNum) //在服务器本地新建文件进行存储
 		if err != nil {
 			fmt.Println("XXX DataNode error at Create chunk file", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 		defer chunkout.Close()
 		io.Copy(chunkout, file) //在服务器本地新建文件进行存储
@@ -66,7 +66,7 @@ func (datanode *DataNode) Run() {
 		num, err := strconv.Atoi(chunknum)
 		if err != nil {
 			fmt.Println("XXX DataNode error(getchunk) at Atoi parse chunknum to int", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 		fmt.Println("Parsed num: ", num)
 
@@ -79,7 +79,7 @@ func (datanode *DataNode) Run() {
 		num, err := strconv.Atoi(chunknum)
 		if err != nil {
 			fmt.Println("XXX DataNode error(getchunkhash) at Atoi parse chunknum to int", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 		fmt.Println("Parsed num: ", num)
 
@@ -92,7 +92,7 @@ func (datanode *DataNode) Run() {
 		num, err := strconv.Atoi(chunknum)
 		if err != nil {
 			fmt.Println("XXX DataNode error at Atoi parse chunknum to int", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 		fmt.Println("Parsed num: ", num)
 
@@ -108,7 +108,7 @@ func (datanode *DataNode) Run() {
 	// 	num, err := strconv.Atoi(chunknum)
 	// 	if err!=nil{
 	// 		fmt.Println("XXX DataNode error at Atoi parse chunknum to int", err.Error())
-	// 		TDFSLogger.Fatal("XXX DataNode error: ", err)
+	// 		TDFSLogger.Panic("XXX DataNode error: ", err)
 	// 	}
 	// 	fmt.Println("Parsed num: ", num)
 
@@ -136,7 +136,7 @@ func (datanode *DataNode) SetConfig(location string, storageTotal int) {
 	res, err := strconv.Atoi(temp[2])
 	if err != nil {
 		fmt.Println("XXX DataNode error at Atoi parse Port", err.Error())
-		TDFSLogger.Fatal("XXX DataNode error: ", err)
+		TDFSLogger.Panic("XXX DataNode error: ", err)
 	}
 	datanode.Port = res
 	datanode.Location = location
@@ -170,25 +170,25 @@ func (datanode *DataNode) Reset() {
 	exist, err := PathExists(datanode.DATANODE_DIR + "/achunkhashs")
 	if err != nil {
 		fmt.Println("XXX DataNode error at Get Dir chunkhashs", err.Error())
-		TDFSLogger.Fatal("XXX DataNode error: ", err)
+		TDFSLogger.Panic("XXX DataNode error: ", err)
 	}
 	if !exist {
 		err = os.MkdirAll(datanode.DATANODE_DIR+"/achunkhashs", os.ModePerm)
 		if err != nil {
 			fmt.Println("XXX DataNode error at MkdirAll chunkhashs", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 	} else {
 		err := os.RemoveAll(datanode.DATANODE_DIR + "/achunkhashs")
 		if err != nil {
 			fmt.Println("XXX DataNode error at RemoveAll file hash data", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 
 		err = os.MkdirAll(datanode.DATANODE_DIR+"/achunkhashs", os.ModePerm)
 		if err != nil {
 			fmt.Println("XXX DataNode error at MkdirAll chunkhashs", err.Error())
-			TDFSLogger.Fatal("XXX DataNode error: ", err)
+			TDFSLogger.Panic("XXX DataNode error: ", err)
 		}
 	}
 }

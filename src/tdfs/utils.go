@@ -29,7 +29,7 @@ func FastWrite(fileName string, data []byte) {
 	err := ioutil.WriteFile(fileName, data, 0666)
 	if err != nil {
 		fmt.Println("XXX Utils error at FastWrite", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at FastWrite", err)
+		TDFSLogger.Panic("XXX Utils error at FastWrite", err)
 	}
 }
 
@@ -38,7 +38,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 	newFile, err := os.Create(fileName)
 	if err != nil {
 		fmt.Println("XXX Utils error at CreateFile", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at CreateFile", err)
+		TDFSLogger.Panic("XXX Utils error at CreateFile", err)
 	}
 	// TDFSLogger.Println(newFile)
 	return newFile
@@ -47,7 +47,7 @@ func CreateFile(fileName string) (newFile *os.File) {
 func showFileInfo(fileName string) {
 	fileInfo, err := os.Stat(fileName)
 	if err != nil {
-		TDFSLogger.Fatal(err)
+		TDFSLogger.Panic(err)
 	}
 	fmt.Println("File name:", fileInfo.Name())
 	fmt.Println("Size in bytes:", fileInfo.Size())
@@ -62,7 +62,7 @@ func DeleteFile(fileName string) {
 	err := os.Remove(fileName)
 	if err != nil {
 		fmt.Println("XXX Utils error at DeleteFile ", fileName, ":", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at DeleteFile ", err)
+		TDFSLogger.Panic("XXX Utils error at DeleteFile ", err)
 	}
 }
 
@@ -76,7 +76,7 @@ func OpenFile(fileName string) (file *os.File) {
 	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err != nil {
 		fmt.Println("XXX Utils error at OpenFile :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at OpenFile :", err)
+		TDFSLogger.Panic("XXX Utils error at OpenFile :", err)
 	}
 	return file
 }
@@ -85,28 +85,28 @@ func copyFile(oriFilename string, newFilename string) {
 	oriFile, err := os.Open(oriFilename)
 	if err != nil {
 		fmt.Println("XXX Utils error at copyFile(Open) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at copyFile(Open) :", err)
+		TDFSLogger.Panic("XXX Utils error at copyFile(Open) :", err)
 	}
 	defer oriFile.Close()
 
 	newFile, err := os.Create(newFilename)
 	if err != nil {
 		fmt.Println("XXX Utils error at copyFile(Create) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at copyFile(Create) :", err)
+		TDFSLogger.Panic("XXX Utils error at copyFile(Create) :", err)
 	}
 	defer newFile.Close()
 
 	bytesWritten, err := io.Copy(newFile, oriFile)
 	if err != nil {
 		fmt.Println("XXX Utils error at copyFile(Copy) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at copyFile(Copy) :", err)
+		TDFSLogger.Panic("XXX Utils error at copyFile(Copy) :", err)
 	}
 	TDFSLogger.Printf("Copied %d bytes.", bytesWritten)
 
 	err = newFile.Sync()
 	if err != nil {
 		fmt.Println("XXX Utils error at copyFile(Sync) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at copyFile(Sync) :", err)
+		TDFSLogger.Panic("XXX Utils error at copyFile(Sync) :", err)
 	}
 }
 
@@ -114,13 +114,13 @@ func readFileLimitedBytes(fileName string, limit int64) {
 	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println("XXX Utils error at readFileLimitedBytes(Open) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at readFileLimitedBytes(Open) :", err)
+		TDFSLogger.Panic("XXX Utils error at readFileLimitedBytes(Open) :", err)
 	}
 	byteSlice := make([]byte, limit)
 	numBytesRead, err := io.ReadFull(file, byteSlice)
 	if err != nil {
 		fmt.Println("XXX Utils error at readFileLimitedBytes(ReadFull) :", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at readFileLimitedBytes(ReadFull) :", err)
+		TDFSLogger.Panic("XXX Utils error at readFileLimitedBytes(ReadFull) :", err)
 	}
 	fmt.Printf("Number of bytes read: %d\n", numBytesRead)
 	fmt.Printf("Data read: \n%s", byteSlice)
@@ -132,12 +132,12 @@ func readFileByBytes(fileName string) []byte {
 	file, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println("XXX Utils error at readFileByBytes(open): ", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at readFileByBytes(open): ", err)
+		TDFSLogger.Panic("XXX Utils error at readFileByBytes(open): ", err)
 	}
 	data, err := ioutil.ReadAll(file)
 	if err != nil {
 		fmt.Println("XXX Utils error at readFileByBytes(ReadAll): ", err.Error())
-		TDFSLogger.Fatal("XXX Utils error at readFileByBytes(ReadAll): ", err)
+		TDFSLogger.Panic("XXX Utils error at readFileByBytes(ReadAll): ", err)
 	}
 	return data
 }
@@ -158,13 +158,13 @@ func CheckPath(path string) {
 	exist, err := PathExists(path)
 	if err != nil {
 		fmt.Println("XXX Utils error at PathExist in CheckPath() ", err.Error())
-		TDFSLogger.Fatal("XXX Utils error: ", err)
+		TDFSLogger.Panic("XXX Utils error: ", err)
 	}
 	if !exist {
 		err = os.MkdirAll(path, os.ModePerm)
 		if err != nil {
 			fmt.Println("XXX Utils error at MkdirAll in CheckPath() ", err.Error())
-			TDFSLogger.Fatal("XXX Utils error: ", err)
+			TDFSLogger.Panic("XXX Utils error: ", err)
 		}
 	}
 }
