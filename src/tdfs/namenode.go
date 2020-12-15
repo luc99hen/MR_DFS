@@ -73,12 +73,12 @@ func (namenode *NameNode) Run() {
 		} else { // if file not exist
 			fmt.Println("## file not exist in namespace: ", fileName)
 			// if mode != put, return not found
-			if mode != "put" {
+			if mode != "put" && mode != "append" {
 				c.JSON(http.StatusNotFound, ResFile{file, ok})
 				return
 			}
 
-			// if mode == put, create new file
+			// if mode == put or append, create new file
 			file.Info = "{name:" + fileName + "}"
 			file.Size, _ = strconv.Atoi(fileSize)
 			file.Offset_LastChunk, _ = strconv.Atoi(offsetLast)

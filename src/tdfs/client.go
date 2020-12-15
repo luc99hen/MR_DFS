@@ -146,16 +146,17 @@ func (client *Client) AppendFile(localFile string, remoteFile string) {
 }
 
 // PutFile upload local files from client to DFS
-func (client *Client) PutFile(localFile string) {
+func (client *Client) PutFile(localFile string) []FileChunk {
 	fmt.Println("****************************************")
 	fmt.Printf("*** PutFile %s to TDFS [NameNode: %s] )\n", localFile, client.NameNodeAddr)
 
-	client.uploadFile(localFile, localFile, "put")
+	chunks := client.uploadFile(localFile, localFile, "put")
 
 	fmt.Println("****************************************")
+	return chunks
 }
 
-func (client *Client) uploadFile(localFile string, remoteFile, mode string) {
+func (client *Client) uploadFile(localFile string, remoteFile, mode string) []FileChunk {
 
 	chunklist, offsetLast, fileLen := SplitToChunksByName(localFile)
 
@@ -165,11 +166,12 @@ func (client *Client) uploadFile(localFile string, remoteFile, mode string) {
 	if resFile.Exist && mode == "put" {
 		fmt.Println("XXX Client error: file already exist in namespace")
 		TDFSLogger.Panic("XXX Client error: file already exist in namespace")
-		return
+		return nil
 	}
 	for i, replicaLocationList := range resFile.File.Chunks {
 		PutChunk(fileName, i, chunklist[i], replicaLocationList)
 	}
+	return resFile.File.Chunks
 }
 
 // PutChunk push chunks (from the original file) to replicaLocations (get from namenode)

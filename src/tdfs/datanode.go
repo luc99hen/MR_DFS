@@ -18,9 +18,9 @@ import (
 func (datanode *DataNode) Run() {
 	// curl -X POST http://127.0.0.1:11091/upload -F "upload=@/Users/treasersmac/Programming/MilkPrairie/Gou/TinyDFS/Client/chunk-1" -H "Content-Type: multipart/form-data"
 	router := gin.Default()
+	router.MaxMultipartMemory = 128 << 20 //上传最大文件限制1024MB
 	router.POST("/putchunk", func(c *gin.Context) {
-		// c.Request.ParseMultipartForm(32 << 20) //上传最大文件限制32M
-		// chunkNum := c.Request.Form.Get("chunkNum") //通过这种方式在gin中也可以读取到POST的参数，ginb
+
 		ReplicaNum := c.PostForm("ReplicaNum")
 		fmt.Printf("* ReplicaNum= %s\n", ReplicaNum)
 

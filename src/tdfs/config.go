@@ -42,10 +42,6 @@ type Client struct {
 	Mode         int
 }
 
-type Config struct {
-	NameNodeAddr string
-}
-
 type NameNode struct {
 	NameSpace    *NameSpaceStruct
 	Location     string
@@ -70,8 +66,4 @@ type DNMeta struct {
 	StorageAvail int
 	ChunkAvail   []int
 	LastEdit     int64
-}
-
-func (conf *Config) Set(addr string) {
-	conf.NameNodeAddr = addr
 }
