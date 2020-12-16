@@ -3,67 +3,74 @@ version: "3.3"
 services:
   datanode1:
     image: go-test:latest
-    command: sh -c "go run /dfs/DN.go -id 1"
+    command: sh -c "/dfs/startClient.sh -id 1"
     ports:
       - 11091:11091
     expose:
       - 11091
+      - 11101
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
 
   datanode2:
     image: go-test:latest
-    command: sh -c "go run /dfs/DN.go -id 2"
+    command: sh -c "/dfs/startClient.sh -id 2"
     ports:
       - 11092:11092
     expose:
       - 11092
+      - 11101
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
 
   datanode3:
     image: go-test:latest
-    command: sh -c "go run /dfs/DN.go -id 3"
+    command: sh -c "/dfs/startClient.sh -id 3"
     ports:
       - 11093:11093
     expose:
       - 11093
+      - 11101
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
   
   datanode4:
     image: go-test:latest
-    command: sh -c "go run /dfs/DN.go -id 4"
+    command: sh -c "/dfs/startClient.sh -id 4"
     ports:
       - 11094:11094
     expose:
       - 11094
+      - 11101
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
   
   datanode5:
     image: go-test:latest
-    command: sh -c "go run /dfs/DN.go -id 5"
+    command: sh -c "/dfs/startClient.sh -id 5"
     ports:
       - 11095:11095
     expose:
       - 11095
+      - 11101
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
   
   namenode:
     image: go-test:latest
-    command: sh -c "go run /dfs/NN.go"
+    command: sh -c "/dfs/startMaster.sh"
     depends_on: 
-      - "datanode1"
-      - "datanode2"
-      - "datanode3"
-      - "datanode4"
+      # - "datanode1"
+      # - "datanode2"
+      # - "datanode3"
+      # - "datanode4"
       - "datanode5"
     ports:
       - 11090:11090
+      - 11100:11100
     expose:
       - 11090
+      - 11100
     volumes:
       - ./TinyDFS:/dfs/TinyDFS
     restart: always

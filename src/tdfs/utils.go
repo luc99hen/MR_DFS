@@ -1,9 +1,11 @@
 package tdfs
 
 import (
+	"bufio"
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"io/ioutil"
 	"os"
@@ -12,7 +14,7 @@ import (
 )
 
 func splitToFileAndStore(fileName string, storeFile string) (chunkLen int, offsetLast int) {
-	data := readFileByBytes(fileName)
+	data := ReadFileByBytes(fileName)
 	var i int = 0
 	for i < len(data)/CHUNK_SIZE {
 		FastWrite(storeFile+strconv.Itoa(i), data[i*CHUNK_SIZE:(i+1)*CHUNK_SIZE])
@@ -127,9 +129,29 @@ func readFileLimitedBytes(fileName string, limit int64) {
 	fmt.Println()
 }
 
-// readFileByBytes parse the file by fileName to bytes
-func readFileByBytes(fileName string) []byte {
+func WriteFile(fileName string, lines []string) error {
+	file, err := os.OpenFile(fileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	for _, line := range lines {
+		_, err = fmt.Fprintln(w, line)
+		if err != nil {
+			return err
+		}
+	}
+	return w.Flush()
+}
+
+// ReadFileByBytes parse the file by fileName to bytes
+func ReadFileByBytes(fileName string) []byte {
 	file, err := os.Open(fileName)
+	defer func() {
+		file.Close()
+	}()
 	if err != nil {
 		fmt.Println("XXX Utils error at readFileByBytes(open): ", err.Error())
 		TDFSLogger.Panic("XXX Utils error at readFileByBytes(open): ", err)
@@ -170,7 +192,7 @@ func CheckPath(path string) {
 }
 
 func SplitToChunksByName(fPath string) (chunklist []ChunkUnit, offsetLast int, fileLen int) {
-	data := readFileByBytes(fPath)
+	data := ReadFileByBytes(fPath)
 	var i int = 0
 	fileLen = len(data)
 	for i < fileLen/CHUNK_SIZE {
@@ -182,16 +204,22 @@ func SplitToChunksByName(fPath string) (chunklist []ChunkUnit, offsetLast int, f
 	return chunklist, offsetLast, fileLen
 }
 
-func path2Name(fPath string) (fileName string) {
+func Path2Name(fPath string) (fileName string) {
 	tmp := strings.Split(fPath, "/") // in case a full path passed
 	return tmp[len(tmp)-1]
 }
 
-func getHash(bytes []byte) (hashStr string) {
+func GetHashStr(bytes []byte) (hashStr string) {
 	hash := sha256.New()
 	hash.Write(bytes)
 	hashStr = hex.EncodeToString(hash.Sum(nil))
 	return hashStr
+}
+
+func GetHashInt(bytes []byte) uint32 {
+	h := fnv.New32a()
+	h.Write(bytes)
+	return h.Sum32()
 }
 
 func getChunkLength(fileSize int) int {

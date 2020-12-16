@@ -24,7 +24,7 @@ func main() {
 
 	var DN_ADDR string
 	if *local {
-		DN_ADDR = "http://localhost:1109" + *id
+		DN_ADDR = "http://172.17.0.1:1109" + *id
 	} else {
 		DN_ADDR = fmt.Sprintf("http://datanode%s:1109%s", *id, *id)
 	}

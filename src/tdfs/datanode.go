@@ -43,9 +43,9 @@ func (datanode *DataNode) Run() {
 		defer chunkout.Close()
 		io.Copy(chunkout, file) //在服务器本地新建文件进行存储
 
-		chunkdata := readFileByBytes(datanode.DATANODE_DIR + "/chunk-" + ReplicaNum)
+		chunkdata := ReadFileByBytes(datanode.DATANODE_DIR + "/chunk-" + ReplicaNum)
 
-		hashStr := getHash(chunkdata)
+		hashStr := GetHashStr(chunkdata)
 		fmt.Println("** chunk hash", ReplicaNum, ": %s", hashStr)
 		FastWrite(datanode.DATANODE_DIR+"/achunkhashs/chunkhash-"+ReplicaNum, []byte(hashStr))
 
@@ -63,11 +63,11 @@ func (datanode *DataNode) Run() {
 		}
 		fmt.Println("Parsed num: ", num)
 
-		chunkBytes := readFileByBytes(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(num))
-		chunkHash := readFileByBytes(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
+		chunkBytes := ReadFileByBytes(datanode.DATANODE_DIR + "/chunk-" + strconv.Itoa(num))
+		chunkHash := ReadFileByBytes(datanode.DATANODE_DIR + "/achunkhashs/chunkhash-" + strconv.Itoa(num))
 
 		/* check hash */
-		hashStr := getHash(chunkBytes)
+		hashStr := GetHashStr(chunkBytes)
 		fmt.Println("*** chunk hash calculated: ", hashStr)
 		fmt.Println("*** chunk hash get: ", string(chunkHash))
 

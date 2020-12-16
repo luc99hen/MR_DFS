@@ -23,7 +23,7 @@ func LogInit(logFilename string, prefix string) (TDFSLogger *log.Logger) {
 	return TDFSLogger
 }
 
-func MyFatal(v ...interface{}) {
+func MyPanic(v ...interface{}) {
 	fmt.Println(v...)
-	MRLogger.Fatal(v...)
+	MRLogger.Panic(v...)
 }
