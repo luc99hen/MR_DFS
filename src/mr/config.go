@@ -28,8 +28,13 @@ type Master struct {
 const MR_DIR = "MR/"
 
 var dfsClient tdfs.Client = tdfs.Client{
-	"http://namenode:11090",
-	0,
+	NameNodeAddr: "http://namenode:11090",
+	Mode:         0,
+}
+
+type KeyValue struct {
+	Key   string
+	Value string
 }
 
 // for sorting by key.

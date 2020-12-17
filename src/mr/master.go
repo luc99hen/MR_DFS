@@ -19,6 +19,7 @@ func (master *Master) Run() {
 	router := gin.Default()
 	router.MaxMultipartMemory = 1024 << 20
 
+	// curl -X POST http://namenode:11100/startup -F "putfile=@/home/luc/repos/TinyDFS/data/call.txt" -o MR/task1.out
 	router.POST("/startup", func(c *gin.Context) {
 
 		fileName := master.recvFile(c)
@@ -60,8 +61,15 @@ func (master *Master) Run() {
 			}
 		}
 
+		// reset all mapper and reducer state
+		master.Mappers = []*Mapper{} // reset mapper everytime
+		for _, reducer := range master.Reducers {
+			reducer.State = false
+		}
+
 		// read output file at mrout
-		dfsClient.GetFile("mrout")
+		resFile, _ := dfsClient.GetFile("mrout")
+		c.String(http.StatusOK, string(resFile))
 
 	})
 
@@ -98,14 +106,13 @@ func (master *Master) recvFile(c *gin.Context) string {
 		return "null"
 	}
 
-	c.String(http.StatusOK, "StartUp SUCCESS\n")
 	return filename
 
 }
 
 func (master *Master) SetConfig(masterAddr string) {
 	for i := 0; i < REDUCER_NUM; i++ {
-		// master.Reducers[i] = &Reducer{"http://172.17.0.1:11101", false}
+		// master.Reducers[i] = &Reducer{"http://namenode:11101", false}
 		master.Reducers[i] = &Reducer{fmt.Sprintf("http://datanode%d:%d", i+1, WORKER_PORT), false}
 	}
 	master.Addr = masterAddr

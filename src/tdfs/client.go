@@ -48,14 +48,14 @@ func (client *Client) Test() {
 	// if err != nil {
 	// 	fmt.Println("Client error at Get test", err.Error())
 	// }
-	client.PutFile("./data/AFile.txt")
-	client.GetFile("AFile.txt")
-	client.AppendFile("./data/BFile.txt", "AFile.txt")
-	client.GetFile("AFile.txt")
+	// client.PutFile("./data/AFile.txt")
+	client.GetFile("reset.sh")
+	// client.AppendFile("./data/BFile.txt", "AFile.txt")
+	// client.GetFile("AFile.txt")
 }
 
 // GetFile download file from DFS
-func (client *Client) GetFile(fileName string) []byte {
+func (client *Client) GetFile(fileName string) ([]byte, error) {
 	fmt.Println("****************************************")
 	fmt.Printf("*** GetFile from TDFS [NameNode: %s] of /%s )\n", client.NameNodeAddr, fileName)
 
@@ -64,21 +64,21 @@ func (client *Client) GetFile(fileName string) []byte {
 
 	if !resFile.Exist {
 		fmt.Println("XXX Client error at GetFile, file not exist")
-		TDFSLogger.Panic("XXX Client error at GetFile, file not exist")
-		return nil
+		TDFSLogger.Println("XXX Client error at GetFile, file not exist")
+		return nil, fmt.Errorf("file not exist")
 	}
 
 	GetChunks(&resFile.File, fileName)
 	bytes := AssembleChunks(&resFile.File, fileName)
 
 	fmt.Println("****************************************")
-	return bytes
+	return bytes, nil
 }
 
 func AssembleChunks(file *File, fileName string) []byte {
 	fmt.Println("*** AssembleFile of ", fileName)
 
-	chunkLength := getChunkLength(file.Size)
+	chunkLength := len(file.Chunks)
 	filedata := make([][]byte, chunkLength)
 	tmpChunkPath := "./" + GetHashStr([]byte(fileName))
 	for i := 0; i < chunkLength; i++ {
@@ -103,7 +103,7 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 	tmpChunkPath := "./" + GetHashStr([]byte(fileName))
 	CheckPath(tmpChunkPath)
 
-	for num := 0; num < getChunkLength(file.Size); num++ {
+	for num := 0; num < len(file.Chunks); num++ {
 		fmt.Println("* getting chunk-", num, "of file:", fileName)
 		for i := 0; i < REDUNDANCE; i++ {
 			replicalocation := file.Chunks[num][i].ServerLocation
@@ -129,9 +129,11 @@ func GetChunks(file *File, fileName string) { //ChunkUnit chunkbytes []byte
 				TDFSLogger.Panic("XXX Client error: ", err)
 			}
 			fmt.Println("** DataNode Response of Get chunk-", num, ": ", string(chunkbytes))
-			/* store chunkdata at nn local */
 
+			/* store chunkdata at nn local */
 			FastWrite(tmpChunkPath+"/chunk-"+strconv.Itoa(num), chunkbytes)
+
+			break
 		}
 	}
 
@@ -165,11 +167,12 @@ func (client *Client) uploadFile(localFile string, remoteFile, mode string) []Fi
 	// incase localFile is a path
 	fileName := Path2Name(remoteFile)
 	resFile := client.getReplicaLocations(fileName, fileLen, offsetLast, mode)
-	if resFile.Exist && mode == "put" {
-		fmt.Println("XXX Client error: file already exist in namespace")
-		TDFSLogger.Panic("XXX Client error: file already exist in namespace")
-		return nil
-	}
+	// // if file exits, continue
+	// if resFile.Exist && mode == "put" {
+	// 	fmt.Println("XXX Client error: file already exist in namespace")
+	// 	TDFSLogger.Panic("XXX Client error: file already exist in namespace")
+	// 	return nil
+	// }
 	for i, replicaLocationList := range resFile.File.Chunks {
 		PutChunk(fileName, i, chunklist[i], replicaLocationList)
 	}

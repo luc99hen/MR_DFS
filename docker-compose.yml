@@ -60,10 +60,10 @@ services:
     image: go-test:latest
     command: sh -c "/dfs/startMaster.sh"
     depends_on: 
-      # - "datanode1"
-      # - "datanode2"
-      # - "datanode3"
-      # - "datanode4"
+      - "datanode1"
+      - "datanode2"
+      - "datanode3"
+      - "datanode4"
       - "datanode5"
     ports:
       - 11090:11090

@@ -64,11 +64,12 @@ func (worker *Worker) Run() {
 	router.POST("/doReduce", func(c *gin.Context) {
 		// read rin-i from dfs
 		id := c.PostFormArray("id")[0]
-		contents := dfsClient.GetFile("rin-" + id)
+		contents, _ := dfsClient.GetFile("rin-" + id)
 		byteReader := bytes.NewBuffer(contents)
 		var intermediate []KeyValue
 		for {
 			line, err := byteReader.ReadString('\n')
+			line = strings.TrimSpace(line)
 			if err != nil {
 				if err == io.EOF {
 					break
