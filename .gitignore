@@ -1,7 +1,6 @@
 .DS_Store
 .vscode/*
 TinyDFS/*
-MR/*
 data/*
 __debug_bin
 local-*
