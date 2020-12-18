@@ -12,37 +12,37 @@ After all these above are set, just use the script `sudo ./reset.sh`, you will h
 ## Project Structure
 
 ```
-├── Client.go  // a command line dfs client based on functions in src/tdfs/client.go 
-├── DN.go	   // start a dfs datanode based on src/tdfs/datanode.go
-├── NN.go	   // start a dfs namenode based on src/tdfs/namenode.go
-├── Master.go  // start a mapreduce master based on src/mr/master.go
-├── Worker.go  // start a mapreduce worker based on src/mr/worker.go
-├── TinyDFS       // dfs work dir (shared by several docker containers with docker data volume)
-    ├── DataNode1 // chunks directory of datanode1
+├── Client.go  		// a command line dfs client based on functions in src/tdfs/client.go 
+├── DN.go	   	// start a dfs datanode based on src/tdfs/datanode.go
+├── NN.go	  	// start a dfs namenode based on src/tdfs/namenode.go
+├── Master.go  		// start a mapreduce master based on src/mr/master.go
+├── Worker.go  		// start a mapreduce worker based on src/mr/worker.go
+├── TinyDFS       	// dfs work dir (shared by several docker containers with docker data volume)
+    ├── DataNode1 	// chunks directory of datanode1
     │   └── achunkhashs //chunks hash directory of datanode1
-    ├── DataNode2 // chunks directory of datanode2
+    ├── DataNode2 	// chunks directory of datanode2
     │   └── achunkhashs //chunks hash directory of datanode2
     ├── NameNode 	// work dir of namenode
-    ├── TDFSLog.txt // DFS log
-    ├── MRLog.txt // MapReduce log
+    ├── TDFSLog.txt 	// DFS log
+    ├── MRLog.txt 	// MapReduce log
 ├── MR            // mapreduce work dir (used to store intermediate file and output file)
 ├── src				
     └── tdfs    // DFS source code
           ├── client.go 	// client related operations
           ├── datanode.go	// datanode related operations
-          ├── namenode.go // namenode related operations
+          ├── namenode.go 	// namenode related operations
           ├── tdfslog.go 	// dfs logger
           ├── config.go  	// dfs data structures and global settings
           └── utils.go	 	// some utility functions
     └── mr    // MapReduce source code
           ├── UserDefined.go 	// map(), reduce(), partitioner() functions get from user
-          ├── worker.go	// worker related operations
-          ├── master.go // master related operations
-          ├── mrlog.go 	// mapreduce logger
+          ├── worker.go		// worker related operations
+          ├── master.go 	// master related operations
+          ├── mrlog.go 		// mapreduce logger
           ├── config.go  	// mapreduce data structures and global settings
-├── reset.go	   // a bash script to start or restart all nodes in docker containers
-├── startClient.go	   // a bash script to start a Client (datanode and worker)
-├── startMaster.go	   // a bash script to start a Master (namenode and master)
+├── reset.sh	  	   // a bash script to start or restart all nodes in docker containers
+├── startClient.sh	   // a bash script to start a Client (datanode and worker)
+├── startMaster.sh	   // a bash script to start a Master (namenode and master)
 ├── docker-compose.yml	   // cluster settings (currently 1 master and 5 client)
 ```
 
